@@ -1,2 +1,7 @@
 # env_doctor
-Checks environment variables
+
+Vital utility for describing and checking environment variables
+
+## License
+
+  [MIT](LICENSE)

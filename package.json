@@ -1,0 +1,27 @@
+{
+  "name": "env_doctor",
+  "version": "1.0.0",
+  "description": "Vital utility for describing and checking environment variables",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LittleIronMan/env_doctor"
+  },
+  "keywords": [
+    "env",
+    "environment",
+    "variables",
+    "check",
+    "npm",
+    "docker"
+  ],
+  "author": "Mihail Klipatskiy <mrstark375@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/LittleIronMan/env_doctor/issues"
+  },
+  "homepage": "https://github.com/LittleIronMan/env_doctor#readme"
+}
