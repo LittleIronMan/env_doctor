@@ -1,0 +1,18 @@
+{
+    "module": {
+        "name": "simpleTest"
+    },
+    "config": {
+        "MAGIC_VAR_1": {
+            "desc": "Single line description example",
+            "value": "Forced value 1.618034"
+        },
+        "MAGIC_VAR_2": {
+            "desc": [
+                "Multiline description example, line #1, lorem ipsum",
+                "line #2, dolor sit amet"
+            ],
+            "default": "Default value 3.141592"
+        }
+    }
+}

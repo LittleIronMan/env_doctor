@@ -2,9 +2,11 @@
   "name": "env_doctor",
   "version": "1.0.0",
   "description": "Vital utility for describing and checking environment variables",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "tsc && node dist/tests/test.js",
+    "build": "tsc"
   },
   "repository": {
     "type": "git",
@@ -12,16 +14,25 @@
   },
   "keywords": [
     "env",
+    ".env",
     "environment",
     "variables",
     "check",
     "npm",
-    "docker"
+    "docker",
+    "dotenv"
   ],
   "author": "Mihail Klipatskiy <mrstark375@gmail.com>",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/LittleIronMan/env_doctor/issues"
   },
-  "homepage": "https://github.com/LittleIronMan/env_doctor#readme"
+  "homepage": "https://github.com/LittleIronMan/env_doctor#readme",
+  "dependencies": {
+    "dotenv": "^8.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^14.14.35",
+    "typescript": "^4.2.3"
+  }
 }
