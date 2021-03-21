@@ -1,46 +1,6 @@
-import { runTests } from "./testUtils";
-import checkCredentials, { Env, Options } from "../envHelper";
+import { equals, runTests } from "./testUtils";
+import checkCredentials, { Options } from "../envHelper";
 import fs from "fs";
-
-function shallowEqual(a: any, b: any) {
-    for (const key in a) {
-        if (a[key] !== b[key]) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-const compare = (a: Env, b: Env) => (a.filePath > b.filePath) ? 1 : ((b.filePath > a.filePath) ? -1 : 0);
-
-function equals(arr: Env[], brr: Env[]) {
-    arr.sort(compare);
-    brr.sort(compare);
-
-    if (arr.length != brr.length) {
-        return false;
-    }
-
-    for (let i = 0; i < arr.length; i++) {
-        const a = arr[i];
-        const b = brr[i];
-
-        if (a.filePath !== b.filePath) {
-            return false;
-        }
-
-        if (!shallowEqual(a.data, b.data)) {
-            return false;
-        }
-
-        if (Object.keys(a.data).length !== Object.keys(b.data).length) {
-            return false;
-        }
-    }
-
-    return true;
-}
 
 const randomWord = "abc";
 
@@ -74,7 +34,7 @@ if (require.main === module) {
                 const results: boolean[] = [];
 
                 const simple1 = await checkCredentials("./simpleTest", options);
-                results.push(equals(simple1, [
+                results.push(equals('simple1 test', simple1, [
                     {
                         filePath: "_simpleTest.env",
                         data: {
@@ -85,7 +45,7 @@ if (require.main === module) {
                 ]));
 
                 const simple2 = await checkCredentials("./simpleTest2", options);
-                results.push(equals(simple2, [
+                results.push(equals('simple2 test', simple2, [
                     {
                         filePath: "_simpleTest2.env",
                         data: {
@@ -102,10 +62,10 @@ if (require.main === module) {
             }
         },
         {
-            name: "simpleTests",
+            name: "complexTest1",
             func: async () => {
                 const complex1 = await checkCredentials("./complexTest1/nodejs_server", options);
-                const result = equals(complex1, [
+                const result = equals('complex1 test', complex1, [
                     {
                         filePath: "_couchdb.env",
                         data: {

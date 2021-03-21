@@ -41,7 +41,7 @@ export default function checkCredentials(configPath: string, options: Options): 
     }
 
     _checkConfigProps(fileData, { config: ['object'], module: ['object'] }, 'root of configuration file');
-    _checkConfigProps(fileData.module, { name: ['string'], dependencies: ['array', 'undefined'] }, '"module" block');
+    _checkConfigProps(fileData.module, { name: ['string'], dependencies: ['object', 'undefined'] }, '"module" block');
 
     const config = fileData.config;
     const module = fileData.module;
@@ -172,7 +172,7 @@ function enterItem(key: string, item: VarInfo, stdin: StdinNodeJS, fileData: Str
     });
 }
 
-function _checkConfigProps(obj: any, schema: { [field: string]: string[] }, whereItIs: string) {
+function _checkConfigProps(obj: any, schema: { [field: string]: string[] }, whereIsIt: string) {
     for (const prop in schema) {
         let isValid = false;
 
@@ -184,7 +184,7 @@ function _checkConfigProps(obj: any, schema: { [field: string]: string[] }, wher
         }
 
         if (!isValid) {
-            throw `Error: Field ${prop} (in ${whereItIs}) should be ${schema[prop].join(', or ')}`;
+            throw `Error: Field "${prop}" (in ${whereIsIt}) should be ${schema[prop].join(', or ')}`;
         }
     }
 }
