@@ -7,14 +7,38 @@ const defaultConfigFileName = 'envConfig.json';
 
 type StringMap = { [key: string]: string };
 
-export type VarInfo = { desc?: string, default?: string, value?: string, secret?: boolean };
+export interface VarInfo {
+    /** Variable description, very useful if you are not psychic */
+    desc?: string;
+
+    /** The default value of the variable if the user entered an empty string */
+    default?: string;
+
+    /** Forced value of variable, no input required */
+    value?: string;
+
+    /** The config of this variable refers to the variable from dependencies list */
+    refTo?: string;
+
+    /**
+     * If true - value of the variable will not be displayed on the screen when typing it from the keyboard.
+     * Also warnings will be displayed if you mistakenly set the "value" or "default" fields
+     */
+    secret?: boolean;
+
+    /** If true - and if the value of the variable is empty string, this variable will not be saved in the .env file */
+    optional?: boolean;
+
+    /** If true - value of the variable in the corresponding .env file will be CLEARED before checking */
+    clearBefore?: boolean;
+};
 export type EnvConfig = { [key: string]: VarInfo }
 export interface Env {
     filePath: string;
     data: StringMap;
 };
 export interface Options {
-    clear?: boolean;
+    clearAll?: boolean;
     useDefaultAsValue?: boolean;
     emulateInput?: string | ((varName: string) => string);
     dontOverwriteFiles?: boolean;
@@ -70,7 +94,7 @@ export default async function checkEnv(configPath: string, options: Options): Pr
     let needEnter: EnvConfig = {};
 
     // сначала проверяем уже существующие учетные данные
-    if (!options.clear && fs.existsSync(env.filePath)) {
+    if (!options.clearAll && fs.existsSync(env.filePath)) {
 
         const buf = fs.readFileSync(env.filePath, 'utf8');
         const _envData = dotenv.parse(buf) as StringMap;
