@@ -1,0 +1,40 @@
+{
+    "module": {
+        "name": "nodejs-express-server",
+        "dependencies": {
+            "couch": "../couch_db",
+            "deep": "../deep_nested_module",
+            "emptyModule": "../empty_module",
+            "flagsCheck": "../flags_check",
+            "notUsed": "../lonely_module",
+            "pg": "../postgres_db"
+        }
+    },
+    "config": {
+        "POSTGRES_HOST": {
+            "value": "amazing-postgres-db"
+        },
+        "POSTGRES_PORT": {
+            "value": "5432"
+        },
+        "POSTGRES_DB": {
+            "refTo": "pg.POSTGRES_DB",
+            "default": "mydatabase"
+        },
+        "POSTGRES_USER": {
+            "refTo": "pg.POSTGRES_USER",
+            "default": "TonyStark"
+        },
+        "POSTGRES_PASSWORD": {
+            "refTo": "pg.POSTGRES_PASSWORD",
+            "value": "ThAnOs JeRk (Warning should appear, because variable is secret and Thanos is not a jerk at all)"
+        },
+        "COUCHDB_USER": {
+            "refTo": "couch.COUCHDB_USER",
+            "default": "BilboBaggins"
+        },
+        "COUCHDB_PASSWORD": {
+            "refTo": "couch.COUCHDB_PASSWORD"
+        }
+    }
+}

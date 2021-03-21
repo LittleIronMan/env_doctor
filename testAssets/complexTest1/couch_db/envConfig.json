@@ -1,0 +1,18 @@
+{
+    "module": {
+        "name": "couchdb",
+        "comment": [
+            "CouchDB docker container environment description.",
+            "Read more about environment variables here: https://hub.docker.com/_/couchdb"
+        ]
+    },
+    "config": {
+        "COUCHDB_USER": {
+            "desc": "Will create an ini-file based local admin user with the given username"
+        },
+        "COUCHDB_PASSWORD": {
+            "secret": true,
+            "desc": "Admin password"
+        }
+    }
+}

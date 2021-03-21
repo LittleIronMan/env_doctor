@@ -7,7 +7,7 @@ const defaultConfigFileName = 'envConfig.json';
 
 type StringMap = { [key: string]: string };
 
-export type VarInfo = { desc?: string, default?: string, value?: string, secure?: boolean };
+export type VarInfo = { desc?: string, default?: string, value?: string, secret?: boolean };
 export type EnvConfig = { [key: string]: VarInfo }
 export interface Env {
     filePath: string;
@@ -154,7 +154,7 @@ function enterItem(key: string, item: VarInfo, stdin: StdinNodeJS, fileData: Str
             console.log('-- Описание: ' + item.desc);
         }
 
-        stdin.muted = !!item.secure;
+        stdin.muted = !!item.secret;
 
         console.log('-- Введите значение> ');
 
@@ -165,7 +165,7 @@ function enterItem(key: string, item: VarInfo, stdin: StdinNodeJS, fileData: Str
 
             fileData[key] = line;
 
-            console.log(`${key}=${item.secure ? '<secure>': line}`);
+            console.log(`${key}=${item.secret ? '<secret>': line}`);
             console.log('');
             resolve();
         };

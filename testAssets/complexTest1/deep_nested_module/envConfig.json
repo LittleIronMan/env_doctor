@@ -1,0 +1,13 @@
+{
+    "module": {
+        "name": "deep1",
+        "dependencies": {
+            "deeper": "./deeper"
+        }
+    },
+    "config": {
+        "DEEP_1": {
+            "refTo": "deeper.DEEP_2"
+        }
+    }
+}

@@ -1,0 +1,14 @@
+{
+    "module": {
+        "name": "empty_module",
+        "comment": [
+            "There are no variables in this module,",
+            "it is allowed to do this, just a check that the program will not crash"
+        ]
+    },
+    "config": {
+        "VAR": {
+            "desc": ""
+        }
+    }
+}

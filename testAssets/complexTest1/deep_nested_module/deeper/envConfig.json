@@ -1,0 +1,13 @@
+{
+    "module": {
+        "name": "deep2",
+        "dependencies": {
+            "veryDeep": "./very_deep"
+        }
+    },
+    "config": {
+        "DEEP_2": {
+            "refTo": "veryDeep.DEEP_3"
+        }
+    }
+}

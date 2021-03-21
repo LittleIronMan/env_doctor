@@ -1,0 +1,11 @@
+{
+    "module": {
+        "name": "deep3"
+    },
+    "config": {
+        "DEEP_3": {
+            "desc": "Congratulations, you've reached the bottom of the Mariana Trench",
+            "value": "James Cameron"
+        }
+    }
+}

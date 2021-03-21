@@ -1,0 +1,18 @@
+{
+    "module": {
+        "name": "flags_check"
+    },
+    "config": {
+        "CLEAR_BEFORE": {
+            "clearBefore": true,
+            "desc": "The value of this variable from the .env file will be cleared before checking the variables",
+            "value": "Value from config"
+        },
+        "OPTIONAL_VAR": {
+            "optional": true,
+            "clearBefore": true,
+            "value": "",
+            "desc": "This variable should NOT be in the .env file, because it is optional and value is empty"
+        }
+    }
+}

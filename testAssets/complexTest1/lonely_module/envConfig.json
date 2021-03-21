@@ -1,0 +1,15 @@
+{
+    "module": {
+        "name": "lonely_module",
+        "comment": [
+            "Nobody refers to any of the variables of this module",
+            "But the .env file should be created",
+            "Because this module is in the list of dependencies of nodejs-express-server"
+        ]
+    },
+    "config": {
+        "LONELY_VARIABLE": {
+            "desc": "I'm so lonely. None of the high level modules reference me ;("
+        }
+    }
+}

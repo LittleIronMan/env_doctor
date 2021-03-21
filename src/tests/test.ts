@@ -1,6 +1,5 @@
 import { runTests } from "./testUtils";
 import checkCredentials, { Env, Options } from "../envHelper";
-import path from "path";
 import fs from "fs";
 
 function shallowEqual(a: any, b: any) {
@@ -43,9 +42,11 @@ function equals(arr: Env[], brr: Env[]) {
     return true;
 }
 
+const randomWord = "abc";
+
 const options: Options = {
     useDefaultAsValue: true,
-    emulateInput: "abc",
+    emulateInput: randomWord,
     dontOverwriteFiles: true,
 };
 
@@ -100,5 +101,77 @@ if (require.main === module) {
                 return results;
             }
         },
+        {
+            name: "simpleTests",
+            func: async () => {
+                const complex1 = await checkCredentials("./complexTest1/nodejs_server", options);
+                const result = equals(complex1, [
+                    {
+                        filePath: "_couchdb.env",
+                        data: {
+                            COUCHDB_USER: "BilboBaggins",
+                            COUCHDB_PASSWORD: randomWord, 
+                        }
+                    },
+                    {
+                        filePath: "_deep1.env",
+                        data: {
+                            DEEP_1: "James Cameron",
+                        }
+                    },
+                    {
+                        filePath: "_deep2.env",
+                        data: {
+                            DEEP_2: "James Cameron",
+                        }
+                    },
+                    {
+                        filePath: "_deep3.env",
+                        data: {
+                            DEEP_3: "James Cameron",
+                        }
+                    },
+                    {
+                        filePath: "_empty_module.env",
+                        data: {}
+                    },
+                    {
+                        filePath: "_flags_check.env",
+                        data: {
+                            CLEAR_BEFORE: "Value from config",
+                            // OPTIONAL_VAR: "", // should not be in .env file, because optional and empty
+                        }
+                    },
+                    {
+                        filePath: "_lonely_module.env",
+                        data: {
+                            LONELY_VARIABLE: randomWord,
+                        }
+                    },
+                    {
+                        filePath: "_nodejs-express-server.env",
+                        data: {
+                            POSTGRES_HOST: "amazing-postgres-db",
+                            POSTGRES_PORT: "5432",
+                            POSTGRES_DB: "mydatabase",
+                            POSTGRES_USER: "TonyStark",
+                            POSTGRES_PASSWORD: "ThAnOs JeRk", // Warning should appear, because variable is secret and value is set in config. And Thanos is not a jerk at all
+                            COUCHDB_USER: "BilboBaggins",
+                            COUCHDB_PASSWORD: randomWord, 
+                        },
+                    },
+                    {
+                        filePath: "_postgres.env",
+                        data: {
+                            POSTGRES_DB: "mydatabase",
+                            POSTGRES_USER: "TonyStark",
+                            POSTGRES_PASSWORD: "ThAnOs JeRk",
+                        }
+                    },
+                ]);
+
+                return result;
+            }
+        }
     ]);
 }

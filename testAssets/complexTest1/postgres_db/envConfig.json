@@ -1,0 +1,36 @@
+{
+    "module": {
+        "name": "postgres",
+        "comment": [
+            "PostgreSQL docker container environment description.",
+            "Read more about environment variables here: https://hub.docker.com/_/postgres"
+        ]
+    },
+    "config": {
+        "POSTGRES_USER": {
+            "desc": [
+                "This optional environment variable is used in conjunction with POSTGRES_PASSWORD",
+                "to set a user and its password.",
+                "This variable will create the specified user with superuser power and a database with the same name.",
+                "If it is not specified, then the default user of 'postgres' will be used."
+            ],
+            "default": "postgres"
+        },
+        "POSTGRES_PASSWORD": {
+            "secret": true,
+            "desc": [
+                "Required. It must not be empty or undefined.",
+                "This environment variable sets the superuser password for PostgreSQL.",
+                "The default superuser is defined by the POSTGRES_USER environment variable."
+            ]
+        },
+        "POSTGRES_DB": {
+            "desc": [
+                "This optional environment variable can be used to define a different",
+                "name for the default database that is created when the image is first started.",
+                "If it is not specified, then the value of POSTGRES_USER == 'postgres' will be used."
+            ],
+            "default": "postgres"
+        }
+    }
+}
