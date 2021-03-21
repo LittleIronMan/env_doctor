@@ -1,5 +1,5 @@
 import { equals, runTests } from "./testUtils";
-import checkCredentials, { Options } from "../envHelper";
+import checkEnv, { Options } from "../envHelper";
 import fs from "fs";
 
 const randomWord = "abc";
@@ -33,7 +33,7 @@ if (require.main === module) {
             func: async () => {
                 const results: boolean[] = [];
 
-                const simple1 = await checkCredentials("./simpleTest", options);
+                const simple1 = await checkEnv("./simpleTest", options);
                 results.push(equals('simple1 test', simple1, [
                     {
                         filePath: "_simpleTest.env",
@@ -44,7 +44,7 @@ if (require.main === module) {
                     }
                 ]));
 
-                const simple2 = await checkCredentials("./simpleTest2", options);
+                const simple2 = await checkEnv("./simpleTest2", options);
                 results.push(equals('simple2 test', simple2, [
                     {
                         filePath: "_simpleTest2.env",
@@ -64,7 +64,7 @@ if (require.main === module) {
         {
             name: "complexTest1",
             func: async () => {
-                const complex1 = await checkCredentials("./complexTest1/nodejs_server", options);
+                const complex1 = await checkEnv("./complexTest1/nodejs_server", options);
                 const result = equals('complex1 test', complex1, [
                     {
                         filePath: "_couchdb.env",

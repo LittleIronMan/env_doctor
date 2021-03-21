@@ -1,4 +1,4 @@
-import checkCredentials from "./envHelper";
+import checkEnv from "./envHelper";
 
 if (require.main === module) {
     const argv = process.argv.slice(2);
@@ -13,7 +13,7 @@ if (require.main === module) {
     // console.log("Cleaning working tree...");
 
     const envConfigPath = argv[0];
-    //checkCredentials(envConfigPath);
+    //checkEnv(envConfigPath);
 }
 
-export default checkCredentials;
+export default checkEnv;

@@ -20,19 +20,20 @@ export interface Options {
     dontOverwriteFiles?: boolean;
 }
 
-export default function checkCredentials(configPath: string, options: Options): Promise<Env[]> {
+export default async function checkEnv(configPath: string, options: Options): Promise<Env[]> {
     if (!fs.existsSync(configPath)) {
-        throw 'Error: Invalid path to configuration file';
+        throw `Error: Invalid path to configuration file ${configPath}`;
     }
 
     if (fs.lstatSync(configPath).isDirectory()) {
         configPath = path.join(configPath, defaultConfigFileName);
 
         if (!fs.existsSync(configPath)) {
-            throw 'Error: Environment configuration file not found';
+            throw `Error: Environment configuration file not found ${configPath}`;
         }
     }
 
+    const dirName = path.dirname(configPath);
     const buf = fs.readFileSync(configPath, 'utf8');
     const fileData = JSON.parse(buf);
 
@@ -40,11 +41,27 @@ export default function checkCredentials(configPath: string, options: Options): 
         throw 'Error: Invalid JSON configuration file';
     }
 
-    _checkConfigProps(fileData, { config: ['object'], module: ['object'] }, 'root of configuration file');
-    _checkConfigProps(fileData.module, { name: ['string'], dependencies: ['object', 'undefined'] }, '"module" block');
+    const logEnd = `configuration file ${configPath}`;
+    _checkConfigProps(fileData, { config: ['object'], module: ['object'] }, 'root of ' + logEnd);
+    _checkConfigProps(fileData.module, { name: ['string'], dependencies: ['object', 'undefined'] }, '"module" block of ' + logEnd);
+
+    const module = fileData.module;
+    const deps = module.dependencies;
+    let childModulesEnv: Env[] = [];
+
+    if (deps) {
+        for (const moduleName in deps) {
+            const schema: any = {};
+            schema[moduleName] = ['string'];
+            _checkConfigProps(deps, schema, `"module.dependencies.${moduleName}" block of ` + logEnd);
+
+            const childModulePath = deps[moduleName];
+            const childEnv = await checkEnv(path.join(dirName, childModulePath), options);
+            childModulesEnv = childModulesEnv.concat(childEnv);
+        }
+    }
 
     const config = fileData.config;
-    const module = fileData.module;
 
     const env = {
         filePath: '_' + module.name + ".env",
@@ -125,10 +142,12 @@ export default function checkCredentials(configPath: string, options: Options): 
             fs.writeFileSync(env.filePath, serialized, 'utf8');
         }
 
-        return [env];
+        return env;
     });
 
-    return res;
+    const thisModuleEnv = await res;
+
+    return childModulesEnv.concat(thisModuleEnv);
 }
 
 function enterItem(key: string, item: VarInfo, stdin: StdinNodeJS, fileData: StringMap, options: Options): Promise<void> {
