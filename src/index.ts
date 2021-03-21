@@ -1,9 +1,9 @@
 import checkCredentials from "./envHelper";
 
 if (require.main === module) {
-    const pathArgs = process.argv.slice(2);
+    const argv = process.argv.slice(2);
 
-    if (pathArgs.length < 1) {
+    if (argv.length < 1) {
         console.warn(
             "Please enter path as arguments"
         );
@@ -12,7 +12,7 @@ if (require.main === module) {
 
     // console.log("Cleaning working tree...");
 
-    const envConfigPath = pathArgs[0];
+    const envConfigPath = argv[0];
     //checkCredentials(envConfigPath);
 }
 

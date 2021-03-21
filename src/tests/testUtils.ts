@@ -8,7 +8,7 @@ export async function runTests(testList: TestList) {
 
         let funcRes = test.func();
 
-        if (!(funcRes instanceof Array) && typeof funcRes === 'object') {
+        if (typeof funcRes === 'object' && !(funcRes instanceof Array)) {
             funcRes = await funcRes;
         }
 

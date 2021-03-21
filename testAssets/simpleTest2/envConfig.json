@@ -1,6 +1,7 @@
 {
     "module": {
-        "name": "simpleTest"
+        "name": "simpleTest2",
+        "comment": "Single module, some data should be picked up from the file with environment variables"
     },
     "config": {
         "MAGIC_VAR_1": {
@@ -13,6 +14,9 @@
                 "line #2, dolor sit amet"
             ],
             "default": "Default value 3.141592"
+        },
+        "MAGIC_VAR_3": {
+            "value": "Forced value 3"
         }
     }
 }
