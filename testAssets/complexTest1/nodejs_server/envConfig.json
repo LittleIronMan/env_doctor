@@ -27,7 +27,7 @@
         },
         "POSTGRES_PASSWORD": {
             "refTo": "pg.POSTGRES_PASSWORD",
-            "value": "ThAnOs JeRk (Warning should appear, because variable is secret and Thanos is not a jerk at all)"
+            "value": "ThAnOs JeRk"
         },
         "COUCHDB_USER": {
             "refTo": "couch.COUCHDB_USER",

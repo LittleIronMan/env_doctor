@@ -33,7 +33,7 @@ export interface VarInfo {
     _valueFromEnvFile?: string;
     _enteredValue?: string;
 };
-const stringFields = ["desc", "default", "value", "refTo"];
+const stringFields = ["default", "value", "refTo"];
 const booleanFields = ["secret", "optional", "clearBefore"];
 
 type StringMap = { [key: string]: string };
@@ -87,6 +87,10 @@ export default async function checkEnv(configPath: string, options: Options): Pr
             const finishValue = _getFinishValue(varInfo, options);
 
             if (typeof finishValue === 'string') {
+                if (finishValue === '' && varInfo.optional) {
+                    continue;
+                }
+
                 env._envFile.data[varName] = finishValue;
             } else {
                 console.warn(`The script could not get the value of the variable ${varName} for an unknown reason`);
@@ -189,6 +193,15 @@ function _parseConfig(configPath: string, thisModuleAlias?: string, deepth: numb
         const varInfo = config[varName] as VarInfo;
         _checkConfigProps(varInfo, varInfoSchema, `"config.${varName}" block of ` + logEnd);
 
+        if (typeof varInfo.desc === 'object') {
+            if (varInfo.desc as string[] instanceof Array) {
+                // Multiline description
+                varInfo.desc = (varInfo.desc as string[]).join('\n');
+            } else {
+                delete varInfo.desc;
+            }
+        }
+
         if (typeof varInfo.refTo == 'string') {
             const words = varInfo.refTo.split('.');
             const refModuleAlias = words[0];
@@ -262,12 +275,12 @@ function _checkExistingEnvFile(env: Env, options: Options) {
 }
 
 function _getFinishValue(varInfo: VarInfo, options: Options): string | undefined {
-    if (typeof varInfo.value === 'string') {
-        return varInfo.value;
-    }
-
     if (typeof varInfo._valueFromEnvFile === 'string' && !varInfo.clearBefore && !options.clearAll) {
         return varInfo._valueFromEnvFile;
+    }
+
+    if (typeof varInfo.value === 'string') {
+        return varInfo.value;
     }
 
     if (options.useDefaultAsValue && typeof varInfo.default === 'string') {
@@ -363,6 +376,7 @@ function _createSchema(propsNames: string[], allowedTypes: string[], out?: Schem
 
 const varInfoSchema = _createSchema(stringFields, ['string', 'undefined']);
 _createSchema(booleanFields, ['boolean', 'undefined'], varInfoSchema);
+_createSchema(['desc'], ['string', 'object', 'undefined'], varInfoSchema);
 
 function _checkConfigProps(obj: any, schema: Schema, whereIsIt: string) {
     for (const prop in schema) {
