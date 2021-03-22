@@ -29,6 +29,9 @@ export interface VarInfo {
 
     /** If true - value of the variable in the corresponding .env file will be CLEARED before checking */
     clearBefore?: boolean;
+
+    _valueFromEnvFile?: string;
+    _enteredValue?: string;
 };
 const stringFields = ["desc", "default", "value", "refTo"];
 const booleanFields = ["secret", "optional", "clearBefore"];
@@ -48,9 +51,12 @@ export interface EnvFile {
 }
 
 export interface Env {
-    envFilePath: string;
+    name: string;
+    alias: string;
     configFilePath: string;
     data: EnvConfig;
+    _deepth: number;
+    _envFile: EnvFile;
 }
 
 export type EnvMap = { [moduleAlias: string]: Env };
@@ -62,11 +68,58 @@ export interface Options {
     dontOverwriteFiles?: boolean;
 }
 
+export default async function checkEnv(configPath: string, options: Options): Promise<EnvFile[]> {
+    const allEnv = _parseConfig(configPath);
+    const descend = (a: Env, b: Env) => (a._deepth > b._deepth) ? -1 : ((b._deepth > a._deepth) ? 1 : 0);
+    allEnv.sort(descend);
+
+    for (const env of allEnv) {
+        _checkExistingEnvFile(env, options);
+    }
+
+    for (const env of allEnv) {
+        await _enterMissingVariables(env, options);
+    }
+
+    for (const env of allEnv) {
+        for (const varName in env.data) {
+            const varInfo = env.data[varName];
+            const finishValue = _getFinishValue(varInfo, options);
+
+            if (typeof finishValue === 'string') {
+                env._envFile.data[varName] = finishValue;
+            } else {
+                console.warn(`The script could not get the value of the variable ${varName} for an unknown reason`);
+            }
+        }
+
+        if (!options.dontOverwriteFiles) {
+            //const serialized = JSON.stringify(fileData, null, '\t');
+            const serialized = Object.keys(env._envFile.data).map((varName) => {
+                return varName + '=' + env._envFile.data[varName];
+            }).join('\n');
+
+            fs.writeFileSync(env._envFile.filePath, serialized, 'utf8');
+        }
+    }
+
+    return allEnv.map((env) => env._envFile);
+}
+
+
 function _moduleNameConflict(moduleAlias: string, configPath1: string, configPath2: string) {
     throw `Error: Module name conflict, the module name "${moduleAlias}" was found simultaneously in the config "${configPath1}" and "${configPath2}"`
 }
 
-function _parseConfig(configPath: string, thisModuleAlias?: string): EnvMap {
+function _getModule(allEnv: Env[], moduleAlias: string): Env | undefined {
+    for (let i = 0; i < allEnv.length; i++) {
+        if (allEnv[i].alias == moduleAlias) {
+            return allEnv[i];
+        }
+    }
+}
+
+function _parseConfig(configPath: string, thisModuleAlias?: string, deepth: number = 0): Env[] {
     if (!fs.existsSync(configPath)) {
         throw `Error: Invalid path to configuration file ${configPath}`;
     }
@@ -94,32 +147,43 @@ function _parseConfig(configPath: string, thisModuleAlias?: string): EnvMap {
     _checkConfigProps(module, { name: ['string'], dependencies: ['object', 'undefined'] }, '"module" block of ' + logEnd);
 
     const deps = module.dependencies;
-    let childModulesEnv: EnvMap = {};
+    let childModulesEnv: Env[] = [];
 
+    // parse module dependencies
     if (deps) {
         _checkConfigProps(deps, _createSchema(Object.keys(deps), ['string']), `"module.dependencies" block of ` + logEnd);
 
         for (const moduleAlias in deps) {
             const modulePath = deps[moduleAlias];
-            const childEnv = _parseConfig(path.join(dirName, modulePath), moduleAlias);
+            const childEnv = _parseConfig(path.join(dirName, modulePath), moduleAlias, deepth + 1);
 
-            for (const alias in childEnv) {
-                if (typeof childModulesEnv[alias] !== 'undefined') {
-                    _moduleNameConflict(alias, childModulesEnv[alias].configFilePath, childEnv[alias].configFilePath);
+            for (const child of childEnv) {
+                const anotherChild = _getModule(childModulesEnv, child.alias);
+
+                if (anotherChild) {
+                    _moduleNameConflict(child.alias, anotherChild.configFilePath, child.configFilePath);
                 }
-                childModulesEnv[alias] = childEnv[alias];
+
+                childModulesEnv.push(child);
             }
         }
     }
 
+    // parse config of module
     const config = fileData.config as EnvConfig;
     _checkConfigProps(config, _createSchema(Object.keys(config), ['object']), `"config" block of ` + logEnd);
 
-    const env = {
-        envFilePath: '_' + module.name + ".env",
+    const env: Env = {
+        name: module.name,
+        alias: thisModuleAlias || module.name,
         configFilePath: configPath,
         data: {},
-    } as Env;
+        _deepth: deepth,
+        _envFile: {
+            filePath: '_' + module.name + ".env",
+            data: {},
+        }
+    };
 
     for (const varName in config) {
         const varInfo = config[varName] as VarInfo;
@@ -129,14 +193,23 @@ function _parseConfig(configPath: string, thisModuleAlias?: string): EnvMap {
             const words = varInfo.refTo.split('.');
             const refModuleAlias = words[0];
             const refVarName = words[1];
+            let refBroken = false;
 
-            if (typeof refModuleAlias === 'string'
-                && typeof refVarName === 'string'
-                && childModulesEnv[refModuleAlias]
-                && childModulesEnv[refModuleAlias].data[refVarName]
-            ) {
-                env.data[varName] = childModulesEnv[refModuleAlias].data[refVarName];
-            } else {
+            if (typeof refModuleAlias !== 'string' || typeof refVarName !== 'string') {
+                refBroken = true;
+            }
+
+            if (!refBroken) {
+                const child = _getModule(childModulesEnv, refModuleAlias)
+
+                if (child && child.data[refVarName]) {
+                    env.data[varName] = child.data[refVarName];
+                } else {
+                    refBroken = true;
+                }
+            }
+
+            if (refBroken) {
                 throw `Error: Broken reference "${varInfo.refTo}" in ` + logEnd;
             }
 
@@ -152,155 +225,126 @@ function _parseConfig(configPath: string, thisModuleAlias?: string): EnvMap {
         }
     }
 
-    if (!thisModuleAlias) {
-        thisModuleAlias = module.name;
+    const twin = _getModule(childModulesEnv, env.alias);
+    if (twin) {
+        _moduleNameConflict(env.alias, twin.configFilePath, configPath);
     }
-
-    if (typeof childModulesEnv[thisModuleAlias] !== 'undefined') {
-        _moduleNameConflict(thisModuleAlias, childModulesEnv[thisModuleAlias].configFilePath, configPath);
-    }
-    childModulesEnv[thisModuleAlias] = env;
+    childModulesEnv.push(env);
 
     return childModulesEnv;
 }
 
-export default async function checkEnv(configPath: string, options: Options): Promise<EnvFile[]> {
-    const allEnv = _parseConfig(configPath);
-    const allEnvFiles: EnvFile[] = [];
-
-    for (const moduleAlias in allEnv) {
-        const env = allEnv[moduleAlias];
-        const envFile = await checkOneEnv(env, options);
-        allEnvFiles.push(envFile);
-    }
-
-    return allEnvFiles;
-}
-
-function checkOneEnv(env: Env, options: Options): Promise<EnvFile> {
-    let needEnter: EnvConfig = {};
+function _checkExistingEnvFile(env: Env, options: Options) {
     const config = env.data;
-    const envFile: EnvFile = {
-        filePath: env.envFilePath,
-        data: {},
-    };
 
-    // сначала проверяем уже существующие учетные данные
-    if (!options.clearAll && fs.existsSync(env.envFilePath)) {
+    if (!options.clearAll && fs.existsSync(env._envFile.filePath)) {
 
-        const buf = fs.readFileSync(env.envFilePath, 'utf8');
+        const buf = fs.readFileSync(env._envFile.filePath, 'utf8');
         const _envFileData = dotenv.parse(buf) as StringMap;
         //const _fileData = JSON.parse(buf);
 
         if (!_envFileData) {
-            throw `Error: Invalid .env file "${env.envFilePath}"`;
+            throw `Error: Invalid .env file "${env._envFile.filePath}"`;
         }
+
+        env._envFile.data = _envFileData;
 
         for (const varName in config) {
             const varInfo = config[varName];
 
-            if (typeof _envFileData[varName] === 'undefined') {
-                needEnter[varName] = varInfo;
-            } else {
-                envFile.data[varName] = _envFileData[varName];
+            let valueFromFile = _envFileData[varName];
+
+            if (typeof valueFromFile === 'string') {
+                varInfo._valueFromEnvFile = valueFromFile;
             }
         }
+    }
+}
 
-    } else {
-        // необходимо ввести все данные заново
-        needEnter = config;
+function _getFinishValue(varInfo: VarInfo, options: Options): string | undefined {
+    if (typeof varInfo.value === 'string') {
+        return varInfo.value;
     }
 
-    for (const varName in needEnter) {
-        const varInfo = needEnter[varName] as VarInfo;
-
-        if (typeof varInfo.value === 'string') {
-            // value перезаписывает переменную
-            envFile.data[varName] = varInfo.value;
-            delete needEnter[varName];
-            continue;
-        }
-
-        if (typeof varInfo.default === 'string' && options.useDefaultAsValue) {
-            // useDefaultAsValue перезаписывает переменную
-            envFile.data[varName] = varInfo.default;
-            delete needEnter[varName];
-            continue;
-        }
+    if (typeof varInfo._valueFromEnvFile === 'string' && !varInfo.clearBefore && !options.clearAll) {
+        return varInfo._valueFromEnvFile;
     }
 
-    const variablesList = Object.keys(needEnter);
+    if (options.useDefaultAsValue && typeof varInfo.default === 'string') {
+        return varInfo.default;
+    }
+
+    if (varInfo._enteredValue) {
+        return varInfo._enteredValue;
+    }
+
+    return undefined;
+}
+
+function _needEnter(varInfo: VarInfo, options: Options): boolean {
+    const finishValue = _getFinishValue(varInfo, options);
+
+    if (typeof finishValue === 'undefined') {
+        return true;
+    }
+
+    return false;
+}
+
+async function _enterMissingVariables(env: Env, options: Options) {
+
+    const variablesList = Object.keys(env.data).filter((varName) => {
+        return _needEnter(env.data[varName], options);
+    });
 
     // нет нужды в обновлении
     if (variablesList.length === 0) {
-        // console.log("Все ключи уже введены, сохранены в файле " + filePath);
-        return Promise.resolve(envFile);
+        return;
     }
 
     const stdin = new StdinNodeJS();
 
-    let p = Promise.resolve();
+    for (const varName of variablesList) {
+        const varInfo = env.data[varName];
+        varInfo._enteredValue = await _enterVariableValue(varName, varInfo, stdin, options);
+    }
 
-    variablesList.forEach(function (key) {
-        const item = needEnter[key];
-        p = p.then(_ => enterItem(key, item, stdin, envFile.data, options));
-    });
-
-    const res = p.then(() => {
-        stdin.rl.close();
-
-        if (!options.dontOverwriteFiles) {
-            //const serialized = JSON.stringify(fileData, null, '\t');
-            const serialized = Object.keys(envFile.data).map((varName) => {
-                return varName + '=' + envFile.data[varName];
-            }).join('\n');
-
-            fs.writeFileSync(envFile.filePath, serialized, 'utf8');
-        }
-
-        return envFile;
-    });
-
-    return res;
+    stdin.rl.close();
 }
 
-function enterItem(key: string, item: VarInfo, stdin: StdinNodeJS, fileData: StringMap, options: Options): Promise<void> {
+async function _enterVariableValue(varName: string, varInfo: VarInfo, stdin: StdinNodeJS, options: Options): Promise<string> {
     return new Promise(function (resolve, reject) {
 
         if (options.emulateInput) {
             if (typeof options.emulateInput === 'function') {
-                fileData[key] = options.emulateInput(key);
-                return resolve();
+                return resolve(options.emulateInput(varName));
             } else if (typeof options.emulateInput === 'string') {
-                fileData[key] = options.emulateInput;
-                return resolve();
+                return resolve(options.emulateInput);
             }
         }
 
-        console.log('Ключ ' + key);
+        console.log('(Variable name) ' + varName);
 
-        if (item.default) {
-            console.log(`-- Значение по-умолчанию == "${item.default}"`);
+        if (varInfo.default) {
+            console.log(`(Default value) == "${varInfo.default}"`);
         }
 
-        if (item.desc) {
-            console.log('-- Описание: ' + item.desc);
+        if (varInfo.desc) {
+            console.log('(Description): ' + varInfo.desc);
         }
 
-        stdin.muted = !!item.secret;
+        stdin.muted = !!varInfo.secret;
 
-        console.log('-- Введите значение> ');
+        console.log('(Enter value)> ');
 
         stdin.stdinHandler = (line) => {
-            if (line === '' && item.default) {
-                line = item.default;
+            if (line === '' && varInfo.default) {
+                line = varInfo.default;
             }
 
-            fileData[key] = line;
-
-            console.log(`${key}=${item.secret ? '<secret>': line}`);
+            console.log(`${varName}=${varInfo.secret ? '<secret>': line}`);
             console.log('');
-            resolve();
+            resolve(line);
         };
     });
 }
