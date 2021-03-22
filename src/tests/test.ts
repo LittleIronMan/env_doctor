@@ -52,6 +52,7 @@ if (require.main === module) {
                             MAGIC_VAR_1: "Value from .env file",
                             MAGIC_VAR_2: "Default value 3.141592",
                             MAGIC_VAR_3: "Forced value 3",
+                            FREEDOM: "Glory to anarchy!", // This variable is not in any of the config files. But it must remain in the env file
                         },
                     }
                 ]));

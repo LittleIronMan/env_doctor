@@ -5,8 +5,6 @@ import dotenv from "dotenv";
 
 const defaultConfigFileName = 'envConfig.json';
 
-type StringMap = { [key: string]: string };
-
 export interface VarInfo {
     /** Variable description, very useful if you are not psychic */
     desc?: string;
@@ -32,11 +30,31 @@ export interface VarInfo {
     /** If true - value of the variable in the corresponding .env file will be CLEARED before checking */
     clearBefore?: boolean;
 };
-export type EnvConfig = { [key: string]: VarInfo }
-export interface Env {
+const stringFields = ["desc", "default", "value", "refTo"];
+const booleanFields = ["secret", "optional", "clearBefore"];
+
+type StringMap = { [key: string]: string };
+
+interface ModuleBlock {
+    name: string;
+    dependencies?: StringMap;
+}
+
+export type EnvConfig = { [varName: string]: VarInfo };
+
+export interface EnvFile {
     filePath: string;
     data: StringMap;
-};
+}
+
+export interface Env {
+    envFilePath: string;
+    configFilePath: string;
+    data: EnvConfig;
+}
+
+export type EnvMap = { [moduleAlias: string]: Env };
+
 export interface Options {
     clearAll?: boolean;
     useDefaultAsValue?: boolean;
@@ -44,7 +62,11 @@ export interface Options {
     dontOverwriteFiles?: boolean;
 }
 
-export default async function checkEnv(configPath: string, options: Options): Promise<Env[]> {
+function _moduleNameConflict(moduleAlias: string, configPath1: string, configPath2: string) {
+    throw `Error: Module name conflict, the module name "${moduleAlias}" was found simultaneously in the config "${configPath1}" and "${configPath2}"`
+}
+
+function _parseConfig(configPath: string, thisModuleAlias?: string): EnvMap {
     if (!fs.existsSync(configPath)) {
         throw `Error: Invalid path to configuration file ${configPath}`;
     }
@@ -67,50 +89,120 @@ export default async function checkEnv(configPath: string, options: Options): Pr
 
     const logEnd = `configuration file ${configPath}`;
     _checkConfigProps(fileData, { config: ['object'], module: ['object'] }, 'root of ' + logEnd);
-    _checkConfigProps(fileData.module, { name: ['string'], dependencies: ['object', 'undefined'] }, '"module" block of ' + logEnd);
 
-    const module = fileData.module;
+    const module = fileData.module as ModuleBlock;
+    _checkConfigProps(module, { name: ['string'], dependencies: ['object', 'undefined'] }, '"module" block of ' + logEnd);
+
     const deps = module.dependencies;
-    let childModulesEnv: Env[] = [];
+    let childModulesEnv: EnvMap = {};
 
     if (deps) {
-        for (const moduleName in deps) {
-            const schema: any = {};
-            schema[moduleName] = ['string'];
-            _checkConfigProps(deps, schema, `"module.dependencies.${moduleName}" block of ` + logEnd);
+        _checkConfigProps(deps, _createSchema(Object.keys(deps), ['string']), `"module.dependencies" block of ` + logEnd);
 
-            const childModulePath = deps[moduleName];
-            const childEnv = await checkEnv(path.join(dirName, childModulePath), options);
-            childModulesEnv = childModulesEnv.concat(childEnv);
+        for (const moduleAlias in deps) {
+            const modulePath = deps[moduleAlias];
+            const childEnv = _parseConfig(path.join(dirName, modulePath), moduleAlias);
+
+            for (const alias in childEnv) {
+                if (typeof childModulesEnv[alias] !== 'undefined') {
+                    _moduleNameConflict(alias, childModulesEnv[alias].configFilePath, childEnv[alias].configFilePath);
+                }
+                childModulesEnv[alias] = childEnv[alias];
+            }
         }
     }
 
-    const config = fileData.config;
+    const config = fileData.config as EnvConfig;
+    _checkConfigProps(config, _createSchema(Object.keys(config), ['object']), `"config" block of ` + logEnd);
 
     const env = {
-        filePath: '_' + module.name + ".env",
+        envFilePath: '_' + module.name + ".env",
+        configFilePath: configPath,
         data: {},
     } as Env;
+
+    for (const varName in config) {
+        const varInfo = config[varName] as VarInfo;
+        _checkConfigProps(varInfo, varInfoSchema, `"config.${varName}" block of ` + logEnd);
+
+        if (typeof varInfo.refTo == 'string') {
+            const words = varInfo.refTo.split('.');
+            const refModuleAlias = words[0];
+            const refVarName = words[1];
+
+            if (typeof refModuleAlias === 'string'
+                && typeof refVarName === 'string'
+                && childModulesEnv[refModuleAlias]
+                && childModulesEnv[refModuleAlias].data[refVarName]
+            ) {
+                env.data[varName] = childModulesEnv[refModuleAlias].data[refVarName];
+            } else {
+                throw `Error: Broken reference "${varInfo.refTo}" in ` + logEnd;
+            }
+
+            for (const prop in varInfo) {
+                if (prop === 'refTo') {
+                    continue;
+                }
+
+                (env.data[varName] as any)[prop] = (varInfo as any)[prop];
+            }
+        } else {
+            env.data[varName] = varInfo;
+        }
+    }
+
+    if (!thisModuleAlias) {
+        thisModuleAlias = module.name;
+    }
+
+    if (typeof childModulesEnv[thisModuleAlias] !== 'undefined') {
+        _moduleNameConflict(thisModuleAlias, childModulesEnv[thisModuleAlias].configFilePath, configPath);
+    }
+    childModulesEnv[thisModuleAlias] = env;
+
+    return childModulesEnv;
+}
+
+export default async function checkEnv(configPath: string, options: Options): Promise<EnvFile[]> {
+    const allEnv = _parseConfig(configPath);
+    const allEnvFiles: EnvFile[] = [];
+
+    for (const moduleAlias in allEnv) {
+        const env = allEnv[moduleAlias];
+        const envFile = await checkOneEnv(env, options);
+        allEnvFiles.push(envFile);
+    }
+
+    return allEnvFiles;
+}
+
+function checkOneEnv(env: Env, options: Options): Promise<EnvFile> {
     let needEnter: EnvConfig = {};
+    const config = env.data;
+    const envFile: EnvFile = {
+        filePath: env.envFilePath,
+        data: {},
+    };
 
     // сначала проверяем уже существующие учетные данные
-    if (!options.clearAll && fs.existsSync(env.filePath)) {
+    if (!options.clearAll && fs.existsSync(env.envFilePath)) {
 
-        const buf = fs.readFileSync(env.filePath, 'utf8');
-        const _envData = dotenv.parse(buf) as StringMap;
+        const buf = fs.readFileSync(env.envFilePath, 'utf8');
+        const _envFileData = dotenv.parse(buf) as StringMap;
         //const _fileData = JSON.parse(buf);
 
-        if (!_envData) {
-            throw `Error: Invalid .env file "${env.filePath}"`;
+        if (!_envFileData) {
+            throw `Error: Invalid .env file "${env.envFilePath}"`;
         }
 
         for (const varName in config) {
             const varInfo = config[varName];
 
-            if (typeof _envData[varName] === 'undefined') {
+            if (typeof _envFileData[varName] === 'undefined') {
                 needEnter[varName] = varInfo;
             } else {
-                env.data[varName] = _envData[varName];
+                envFile.data[varName] = _envFileData[varName];
             }
         }
 
@@ -124,14 +216,14 @@ export default async function checkEnv(configPath: string, options: Options): Pr
 
         if (typeof varInfo.value === 'string') {
             // value перезаписывает переменную
-            env.data[varName] = varInfo.value;
+            envFile.data[varName] = varInfo.value;
             delete needEnter[varName];
             continue;
         }
 
         if (typeof varInfo.default === 'string' && options.useDefaultAsValue) {
             // useDefaultAsValue перезаписывает переменную
-            env.data[varName] = varInfo.default;
+            envFile.data[varName] = varInfo.default;
             delete needEnter[varName];
             continue;
         }
@@ -142,7 +234,7 @@ export default async function checkEnv(configPath: string, options: Options): Pr
     // нет нужды в обновлении
     if (variablesList.length === 0) {
         // console.log("Все ключи уже введены, сохранены в файле " + filePath);
-        return Promise.resolve([env]);
+        return Promise.resolve(envFile);
     }
 
     const stdin = new StdinNodeJS();
@@ -151,7 +243,7 @@ export default async function checkEnv(configPath: string, options: Options): Pr
 
     variablesList.forEach(function (key) {
         const item = needEnter[key];
-        p = p.then(_ => enterItem(key, item, stdin, env.data, options));
+        p = p.then(_ => enterItem(key, item, stdin, envFile.data, options));
     });
 
     const res = p.then(() => {
@@ -159,19 +251,17 @@ export default async function checkEnv(configPath: string, options: Options): Pr
 
         if (!options.dontOverwriteFiles) {
             //const serialized = JSON.stringify(fileData, null, '\t');
-            const serialized = Object.keys(env.data).map((varName) => {
-                return varName + '=' + env.data[varName];
+            const serialized = Object.keys(envFile.data).map((varName) => {
+                return varName + '=' + envFile.data[varName];
             }).join('\n');
 
-            fs.writeFileSync(env.filePath, serialized, 'utf8');
+            fs.writeFileSync(envFile.filePath, serialized, 'utf8');
         }
 
-        return env;
+        return envFile;
     });
 
-    const thisModuleEnv = await res;
-
-    return childModulesEnv.concat(thisModuleEnv);
+    return res;
 }
 
 function enterItem(key: string, item: VarInfo, stdin: StdinNodeJS, fileData: StringMap, options: Options): Promise<void> {
@@ -215,7 +305,22 @@ function enterItem(key: string, item: VarInfo, stdin: StdinNodeJS, fileData: Str
     });
 }
 
-function _checkConfigProps(obj: any, schema: { [field: string]: string[] }, whereIsIt: string) {
+type Schema = { [field: string]: string[] };
+
+function _createSchema(propsNames: string[], allowedTypes: string[], out?: Schema): Schema {
+    if (!out) {
+        out = {};
+    }
+    for (const prop of propsNames) {
+        out[prop] = allowedTypes;
+    }
+    return out;
+}
+
+const varInfoSchema = _createSchema(stringFields, ['string', 'undefined']);
+_createSchema(booleanFields, ['boolean', 'undefined'], varInfoSchema);
+
+function _checkConfigProps(obj: any, schema: Schema, whereIsIt: string) {
     for (const prop in schema) {
         let isValid = false;
 

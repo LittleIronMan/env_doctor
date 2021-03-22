@@ -1,4 +1,4 @@
-import { Env } from "../envHelper";
+import { EnvFile } from "../envHelper";
 
 export type TestList = { name: string, func: () => boolean[] | boolean | Promise<boolean[] | boolean> }[];
 
@@ -44,9 +44,9 @@ function shallowEqual(a: any, b: any) {
     return true;
 }
 
-const compare = (a: Env, b: Env) => (a.filePath > b.filePath) ? 1 : ((b.filePath > a.filePath) ? -1 : 0);
+const compare = (a: EnvFile, b: EnvFile) => (a.filePath > b.filePath) ? 1 : ((b.filePath > a.filePath) ? -1 : 0);
 
-export function equals(whereIsIt: string, arr: Env[], brr: Env[]) {
+export function equals(whereIsIt: string, arr: EnvFile[], brr: EnvFile[]) {
     arr.sort(compare);
     brr.sort(compare);
 
