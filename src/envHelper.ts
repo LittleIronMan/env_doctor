@@ -336,7 +336,7 @@ async function _enterVariableValue(varName: string, varInfo: VarInfo, stdin: Std
             }
         }
 
-        console.log('(Variable name) ' + varName);
+        console.log('(Variable name): ' + varName);
 
         if (varInfo.default) {
             console.log(`(Default value) == "${varInfo.default}"`);
