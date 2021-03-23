@@ -10,13 +10,13 @@ Files are located like this:
 :file_folder: project\
 │\
 ├─ :file_folder: nodejs\
-│&nbsp;&nbsp;&nbsp; :page_facing_up: envConfig.json\
+│ &nbsp; &nbsp;└─ :page_facing_up: envConfig.json\
 │\
 ├─ :file_folder: couch_db\
-│&nbsp;&nbsp;&nbsp; :page_facing_up: envConfig.json\
+│ &nbsp; &nbsp;└─ :page_facing_up: envConfig.json\
 │\
 └─ :file_folder: postgres_db\
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; :page_facing_up: envConfig.json\
+ &nbsp; &nbsp; &nbsp; └─ :page_facing_up: envConfig.json\
 
 `envConfig.json` file of main module **my-nodejs-server**:
 
