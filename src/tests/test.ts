@@ -1,32 +1,18 @@
-import { equals, runTests } from "./testUtils";
 import checkEnv, { Options } from "../envHelper";
-import fs from "fs";
-
-const randomWord = "abc";
-
-const options: Options = {
-    useDefaultAsValue: true,
-    emulateInput: randomWord,
-    dontOverwriteFiles: true,
-};
-
+import { equals, runTests } from "./testUtils";
+import { parseArgs } from "../index";
 
 if (require.main === module) {
-    const argv = process.argv.slice(2);
+    const parsed = parseArgs(process.argv);
 
-    let basePath = "./";
-
-    if (argv.length > 0) {
-        basePath = argv[0];
-
-        if (!fs.existsSync(basePath) || !fs.lstatSync(basePath).isDirectory()) {
-            throw `The passed argument path "${basePath}" was not found`;
-        }
-
-        process.chdir(basePath);
+    if (parsed.allArgs.test == 1) {
+        test1(parsed.options);
+    } else if (parsed.allArgs.test == 2) {
+        test2(parsed.options);
     }
+}
 
-
+function test1(options: Options) {
     runTests([
         {
             name: "simpleTests",
@@ -71,7 +57,7 @@ if (require.main === module) {
                         filePath: "_couchdb.env",
                         data: {
                             COUCHDB_USER: "BilboBaggins",
-                            COUCHDB_PASSWORD: randomWord, 
+                            COUCHDB_PASSWORD: 'abc', 
                         }
                     },
                     {
@@ -106,7 +92,7 @@ if (require.main === module) {
                     {
                         filePath: "_lonely_module.env",
                         data: {
-                            LONELY_VARIABLE: randomWord,
+                            LONELY_VARIABLE: 'abc',
                         }
                     },
                     {
@@ -118,7 +104,7 @@ if (require.main === module) {
                             POSTGRES_USER: "TonyStark",
                             POSTGRES_PASSWORD: "ThAnOs JeRk", // Warning should appear, because variable is secret and value is set in config. And Thanos is not a jerk at all
                             COUCHDB_USER: "BilboBaggins",
-                            COUCHDB_PASSWORD: randomWord, 
+                            COUCHDB_PASSWORD: 'abc', 
                         },
                     },
                     {
@@ -127,6 +113,45 @@ if (require.main === module) {
                             POSTGRES_DB: "mydatabase",
                             POSTGRES_USER: "TonyStark",
                             POSTGRES_PASSWORD: "ThAnOs JeRk",
+                        }
+                    },
+                ]);
+
+                return result;
+            }
+        }
+    ]);
+}
+
+function test2(options: Options) {
+    runTests([
+        {
+            name: "exampleProject",
+            func: async () => {
+                const complex1 = await checkEnv("./nodejs", options);
+                const result = equals('complex1 test', complex1, [
+                    {
+                        filePath: "_my-nodejs-server.env",
+                        data: {
+                            AMAZING_VAR: "Default value 3.141592",
+                            MY_MAGIC_VAR: "Forced value 1.618034",
+                            POSTGRES_PORT: "5432",
+                            POSTGRES_PASSWORD: "keyboard_input",
+                            COUCHDB_PASSWORD: "keyboard_input"
+                        },
+                    },
+                    {
+                        filePath: "_postgres.env",
+                        data: {
+                            POSTGRES_USER: "postgres",
+                            POSTGRES_PASSWORD: "keyboard_input",
+                        }
+                    },
+                    {
+                        filePath: "_couchdb.env",
+                        data: {
+                            COUCHDB_USER: "BilboBaggins",
+                            COUCHDB_PASSWORD: "keyboard_input" 
                         }
                     },
                 ]);

@@ -6,6 +6,7 @@ Let's start describing environment variables together :two_men_holding_hands:
 
 # Config example
 
+<!-- https://github.com/ikatyang/emoji-cheat-sheet -->
 Files are located like this:  
 :file_folder: project\
 │\
@@ -16,9 +17,9 @@ Files are located like this:
 │ &nbsp; &nbsp;└─ :page_facing_up: envConfig.json\
 │\
 └─ :file_folder: postgres_db\
- &nbsp; &nbsp; &nbsp; └─ :page_facing_up: envConfig.json\
+ &nbsp; &nbsp; &nbsp; └─ :page_facing_up: envConfig.json
 
-`envConfig.json` file of main module **my-nodejs-server**:
+**Main** module `nodejs/envConfig.json` file:
 
 ```json
 {
@@ -28,7 +29,7 @@ Files are located like this:
       "couch": "../couch_db",
       "pg": "../postgres_db"
     },
-    "comment": "There may be a description of your module with variables here. The script does not use this information."
+    "comment": "There may be a description of your module with variables here. Script does not use this information."
   },
   "config": {
     "AMAZING_VAR": {
@@ -37,11 +38,10 @@ Files are located like this:
     },
     "MY_MAGIC_VAR": {
       "desc": [
-        "Multiline description example",
+        "Multiline description example.",
         "British scientists have found that",
-        "the description of an environment variable",
-        "helps the developer better understand its purpose",
-        "than the absence of this description."
+        "describing environment variables in one file",
+        "is pretty damn convenient thing."
       ],
       "value": "Forced value 1.618034"
     },
@@ -49,7 +49,7 @@ Files are located like this:
       "value": "5432"
     },
     "POSTGRES_PASSWORD": {
-      "refTo": "pg.POSTGRES_PASSWORD",
+      "refTo": "pg.POSTGRES_PASSWORD"
     },
     "COUCHDB_PASSWORD": {
       "refTo": "couch.COUCHDB_PASSWORD"
@@ -70,12 +70,12 @@ Files are located like this:
 
 - `"default"` - *Optional*. Default value of variable.
 It is used if user enters nothing (i.e. empty line `""`).  
-*:exclamation: Not recommended to use this field for private/secret data.*
+:warning: *Not recommended to use this field for private/secret data.*
 
 - `"value"` - *Optional*. Forced value of variable.
 The user will not enter it.
 The value is immediately assigned to the corresponding variable.  
-*:exclamation: Not recommended to use this field for private/secret data.*
+:warning: *Not recommended to use this field for private/secret data.*
 
 - `"refTo"` - *Optional*. The config of this variable refers to the variable from dependencies list. Template: `<moduleAlias>.<externalVarName>`. Example: `myDatabase.DB_PASSWORD`. If the variable is not found in the child module, an error will be thrown.
 

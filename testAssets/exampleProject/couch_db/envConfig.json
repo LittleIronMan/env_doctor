@@ -1,0 +1,15 @@
+{
+  "module": {
+    "name": "couchdb"
+  },
+  "config": {
+    "COUCHDB_USER": {
+      "desc": "Will create an ini-file based local admin user with the given username",
+      "default": "BilboBaggins"
+    },
+    "COUCHDB_PASSWORD": {
+      "secret": true,
+      "desc": "Admin password"
+    }
+  }
+}

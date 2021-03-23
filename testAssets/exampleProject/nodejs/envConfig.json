@@ -1,0 +1,34 @@
+{
+  "module": {
+    "name": "my-nodejs-server",
+    "dependencies": {
+      "couch": "../couch_db",
+      "pg": "../postgres_db"
+    },
+    "comment": "There may be a description of your module with variables here. The script does not use this information."
+  },
+  "config": {
+    "AMAZING_VAR": {
+      "desc": "Single line with variable description",
+      "default": "Default value 3.141592"
+    },
+    "MY_MAGIC_VAR": {
+      "desc": [
+        "Multiline description example",
+        "British scientists have found that",
+        "describing environment variables in one file",
+        "is pretty damn convenient thing."
+      ],
+      "value": "Forced value 1.618034"
+    },
+    "POSTGRES_PORT": {
+      "value": "5432"
+    },
+    "POSTGRES_PASSWORD": {
+      "refTo": "pg.POSTGRES_PASSWORD"
+    },
+    "COUCHDB_PASSWORD": {
+      "refTo": "couch.COUCHDB_PASSWORD"
+    }
+  }
+}

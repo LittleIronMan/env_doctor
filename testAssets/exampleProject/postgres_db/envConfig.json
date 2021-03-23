@@ -1,0 +1,24 @@
+{
+  "module": {
+    "name": "postgres",
+    "comment": [
+      "PostgreSQL docker container environment description.",
+      "Read more about environment variables here: https://hub.docker.com/_/postgres"
+    ]
+  },
+  "config": {
+    "POSTGRES_USER": {
+      "desc": [
+        "This optional environment variable is used in conjunction with POSTGRES_PASSWORD",
+        "to set a user and its password.",
+        "This variable will create the specified user with superuser power and a database with the same name.",
+        "If it is not specified, then the default user of 'postgres' will be used."
+      ],
+      "default": "postgres"
+    },
+    "POSTGRES_PASSWORD": {
+      "secret": true,
+      "desc": "Required. It must not be empty or undefined."
+    }
+  }
+}
