@@ -16,10 +16,17 @@ npm install -g env_doctor
 
 ```bash
 cd path/to/my/project
-npx env_doctor ./mainProjectModule
+env_doctor ./mainProjectModule
 # or
-npx env_doctor ./mainProjectModule/envConfig.json
+env_doctor ./mainProjectModule/envConfig.json
 ```
+
+<details> 
+  <summary>Hint for Windows users</summary>
+  If the command is not found - add %USERPROFILE%\AppData\Roaming\npm to the PATH environment variable
+</details>
+
+&nbsp;
 
 # Config example
 

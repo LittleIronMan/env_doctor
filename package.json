@@ -5,7 +5,11 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
-    "dist/**/*"
+    "dist/index.js",
+    "dist/index.d.ts",
+    "dist/envHelper.js",
+    "dist/envHelper.d.ts",
+    "dist/stdin.js"
   ],
   "scripts": {
     "test": "tsc && cd ./testAssets && node ../dist/tests/test.js --useDefaultAsValue --dontOverwriteFiles --emulateInput abc --test 1",

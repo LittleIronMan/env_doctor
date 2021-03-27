@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import checkEnv, { Options, err } from "./envHelper";
 import minimistParse from "minimist";
 
