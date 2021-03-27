@@ -1,25 +1,24 @@
-import checkEnv, { Options } from "./envHelper";
-import fs from "fs";
+import checkEnv, { Options, err } from "./envHelper";
 import minimistParse from "minimist";
 
-export function parseArgs(argv: string[]): { options: Options, mainModule: string, allArgs: any } {
-    const cliArgs: any = minimistParse(process.argv.slice(2));
+export function parseArgs(): { options: Options, mainModule: string, allArgs: any } {
+    const booleanArgs = ['clearAll', 'useDefaultAsValue', 'dontOverwriteFiles'];
+    const cliArgs: any = minimistParse(process.argv.slice(2), { boolean: booleanArgs });
 
     let mainModule = cliArgs._[0];
+    // console.log(cliArgs);
 
-    if (typeof mainModule === 'undefined') {
+    if (typeof mainModule !== 'string') {
         if (cliArgs.test) {
             mainModule = './';
         } else {
-            throw 'Error: Required path to the directory with envConfig.json file';
+            err('Required path to file or directory with "envConfig.json" file');
         }
-    } else if (typeof mainModule !== 'string' || !fs.existsSync(mainModule) || !fs.lstatSync(mainModule).isDirectory()) {
-        throw `The passed argument path "${mainModule}" was not found`;
     }
 
     const options: Options = {};
 
-    for (const opt of ['clearAll', 'useDefaultAsValue', 'dontOverwriteFiles', 'emulateInput']) {
+    for (const opt of booleanArgs.concat(['emulateInput'])) {
         if (typeof cliArgs[opt] !== 'undefined') {
             (options[opt as keyof Options] as any) = cliArgs[opt];
         }
@@ -29,7 +28,7 @@ export function parseArgs(argv: string[]): { options: Options, mainModule: strin
 }
 
 if (require.main === module) {
-    const parsed = parseArgs(process.argv);
+    const parsed = parseArgs();
     checkEnv(parsed.mainModule, parsed.options);
 }
 

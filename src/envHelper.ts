@@ -107,12 +107,13 @@ export default async function checkEnv(configPath: string, options: Options): Pr
         }
     }
 
+    console.log('All environment variables are ready');
     return allEnv.map((env) => env._envFile);
 }
 
 
 function _moduleNameConflict(moduleAlias: string, configPath1: string, configPath2: string) {
-    throw `Error: Module name conflict, the module name "${moduleAlias}" was found simultaneously in the config "${configPath1}" and "${configPath2}"`
+    err(`Module name conflict, the module name "${moduleAlias}" was found simultaneously in the config "${configPath1}" and "${configPath2}"`)
 }
 
 function _getModule(allEnv: Env[], moduleAlias: string): Env | undefined {
@@ -125,14 +126,14 @@ function _getModule(allEnv: Env[], moduleAlias: string): Env | undefined {
 
 function _parseConfig(configPath: string, thisModuleAlias?: string, deepth: number = 0): Env[] {
     if (!fs.existsSync(configPath)) {
-        throw `Error: Invalid path to configuration file ${configPath}`;
+        err(`Invalid path to configuration file ${configPath}`);
     }
 
     if (fs.lstatSync(configPath).isDirectory()) {
         configPath = path.join(configPath, defaultConfigFileName);
 
         if (!fs.existsSync(configPath)) {
-            throw `Error: Environment configuration file not found ${configPath}`;
+            err(`Environment configuration file not found ${configPath}`);
         }
     }
 
@@ -141,7 +142,7 @@ function _parseConfig(configPath: string, thisModuleAlias?: string, deepth: numb
     const fileData = JSON.parse(buf);
 
     if (!fileData) {
-        throw 'Error: Invalid JSON configuration file';
+        err('Error: Invalid JSON configuration file');
     }
 
     const logEnd = `configuration file ${configPath}`;
@@ -223,7 +224,7 @@ function _parseConfig(configPath: string, thisModuleAlias?: string, deepth: numb
             }
 
             if (refBroken) {
-                throw `Error: Broken reference "${varInfo.refTo}" in ` + logEnd;
+                err(`Broken reference "${varInfo.refTo}" in `) + logEnd;
             }
 
             for (const prop in varInfo) {
@@ -239,9 +240,11 @@ function _parseConfig(configPath: string, thisModuleAlias?: string, deepth: numb
     }
 
     const twin = _getModule(childModulesEnv, env.alias);
+
     if (twin) {
         _moduleNameConflict(env.alias, twin.configFilePath, configPath);
     }
+
     childModulesEnv.push(env);
 
     return childModulesEnv;
@@ -257,7 +260,7 @@ function _checkExistingEnvFile(env: Env, options: Options) {
         //const _fileData = JSON.parse(buf);
 
         if (!_envFileData) {
-            throw `Error: Invalid .env file "${env._envFile.filePath}"`;
+            err(`Invalid .env file "${env._envFile.filePath}"`);
         }
 
         env._envFile.data = _envFileData;
@@ -390,7 +393,12 @@ function _checkConfigProps(obj: any, schema: Schema, whereIsIt: string) {
         }
 
         if (!isValid) {
-            throw `Error: Field "${prop}" (in ${whereIsIt}) should be ${schema[prop].join(', or ')}`;
+            err(`Field "${prop}" (in ${whereIsIt}) should be ${schema[prop].join(', or ')}`);
         }
     }
+}
+
+export function err(msg: string) {
+    console.error("Error: " + msg);
+    process.exit();
 }

@@ -8,10 +8,6 @@
     "comment": "There may be a description of your module with variables here. The script does not use this information."
   },
   "config": {
-    "AMAZING_VAR": {
-      "desc": "Single line with variable description",
-      "default": "Default value 3.141592"
-    },
     "MY_MAGIC_VAR": {
       "desc": [
         "Multiline description example",
@@ -23,6 +19,9 @@
     },
     "POSTGRES_PORT": {
       "value": "5432"
+    },
+    "PROJECT_NAME": {
+      "desc": "The name of this incredible project"
     },
     "POSTGRES_PASSWORD": {
       "refTo": "pg.POSTGRES_PASSWORD"

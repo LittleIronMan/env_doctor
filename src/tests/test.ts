@@ -3,12 +3,14 @@ import { equals, runTests } from "./testUtils";
 import { parseArgs } from "../index";
 
 if (require.main === module) {
-    const parsed = parseArgs(process.argv);
+    const parsed = parseArgs();
 
     if (parsed.allArgs.test == 1) {
         test1(parsed.options);
     } else if (parsed.allArgs.test == 2) {
         test2(parsed.options);
+    } else {
+        console.log('Argument "test" not found');
     }
 }
 
@@ -133,9 +135,9 @@ function test2(options: Options) {
                     {
                         filePath: "_my-nodejs-server.env",
                         data: {
-                            AMAZING_VAR: "Default value 3.141592",
                             MY_MAGIC_VAR: "Forced value 1.618034",
                             POSTGRES_PORT: "5432",
+                            PROJECT_NAME: 'keyboard_input',
                             POSTGRES_PASSWORD: "keyboard_input",
                             COUCHDB_PASSWORD: "keyboard_input"
                         },

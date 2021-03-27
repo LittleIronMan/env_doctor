@@ -52,8 +52,8 @@ export function equals(whereIsIt: string, arr: EnvFile[], brr: EnvFile[]) {
 
     if (arr.length != brr.length) {
         // console.warn(`(In ${whereIsIt}) Array lengths don't match, expected ${brr.length} but received ${arr.length}`);
-        console.log("Required: ", brr.map((b) => b.filePath));
-        console.log("Actually: ", arr.map((a) => a.filePath));
+        console.log('Required: ', brr.map((b) => b.filePath));
+        console.log('Actually: ', arr.map((a) => a.filePath));
         return false;
     }
 
@@ -63,15 +63,15 @@ export function equals(whereIsIt: string, arr: EnvFile[], brr: EnvFile[]) {
 
         if (a.filePath !== b.filePath) {
             // console.warn(`(In ${whereIsIt}) required filePath "${b.filePath}" but actually "${a.filePath}"`);
-            console.log("Required: ", brr.map((b) => b.filePath));
-            console.log("Actually: ", arr.map((a) => a.filePath));
+            console.log('Required: ', brr.map((b) => b.filePath));
+            console.log('Actually: ', arr.map((a) => a.filePath));
             return false;
         }
 
         if (!shallowEqual(a.data, b.data)) {
             console.warn(`(In ${whereIsIt}, env file "${a.filePath}")`);
-            console.log("Required: ", b.data);
-            console.log("Actually: ", a.data);
+            console.log('Required: ', b.data);
+            console.log('Actually: ', a.data);
             return false;
         }
 
