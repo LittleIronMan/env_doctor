@@ -1,5 +1,5 @@
 {
-  "name": "env_doctor",
+  "name": "doctor-env",
   "version": "1.0.0",
   "description": "Vital utility for describing and checking environment variables",
   "main": "dist/index.js",

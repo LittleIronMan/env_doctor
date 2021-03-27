@@ -1,4 +1,4 @@
-## env_doctor
+## doctor-env
 
 Vital utility for describing and checking environment variables.  
 Let's start describing environment variables together :two_men_holding_hands:  
@@ -9,16 +9,16 @@ Let's start describing environment variables together :two_men_holding_hands:
 For the latest stable version:
 
 ```bash
-npm install -g env_doctor
+npm install -g doctor-env
 ```
 
 ## Usage
 
 ```bash
 cd path/to/my/project
-env_doctor ./mainProjectModule
+doctor-env ./mainProjectModule
 # or
-env_doctor ./mainProjectModule/envConfig.json
+doctor-env ./mainProjectModule/envConfig.json
 ```
 
 <details> 
