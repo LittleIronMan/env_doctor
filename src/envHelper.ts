@@ -129,6 +129,10 @@ function _parseConfig(configPath: string, thisModuleAlias?: string, deepth: numb
         err(`Invalid path to configuration file ${configPath}`);
     }
 
+    if (fs.lstatSync(configPath).isSymbolicLink()) {
+        configPath = fs.realpathSync(configPath);
+    }
+    
     if (fs.lstatSync(configPath).isDirectory()) {
         configPath = path.join(configPath, defaultConfigFileName);
 
