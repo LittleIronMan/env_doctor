@@ -59,6 +59,7 @@ Files are located like this:
       "pg": "../postgres_db"
     },
     "comment": "There may be a description of your module with variables here. Script does not use this information."
+    // C-style comments are also supported
   },
   "config": {
     "MY_MAGIC_VAR": {

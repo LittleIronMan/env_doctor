@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import StdinNodeJS from "./stdin";
 import dotenv from "dotenv";
+import stripJsonComments from "strip-json-comments";
 
 const defaultConfigFileName = 'envConfig.json';
 
@@ -143,10 +144,17 @@ function _parseConfig(configPath: string, thisModuleAlias?: string, deepth: numb
 
     const dirName = path.dirname(configPath);
     const buf = fs.readFileSync(configPath, 'utf8');
-    const fileData = JSON.parse(buf);
+    let fileData: any;
+
+    try {
+        fileData = JSON.parse(stripJsonComments(buf));
+    } catch (e) {
+        console.log(`Error in file ${configPath}`);
+        err(e.message);
+    }
 
     if (!fileData) {
-        err('Error: Invalid JSON configuration file');
+        err(`Error: Invalid JSON configuration file ${configPath}`);
     }
 
     const logEnd = `configuration file ${configPath}`;
