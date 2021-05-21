@@ -1,6 +1,6 @@
 import checkEnv, { Options } from "../envHelper";
 import { equals, runTests } from "./testUtils";
-import { parseArgs } from "../index";
+import { parseArgs } from "../utils";
 
 if (require.main === module) {
     const parsed = parseArgs();

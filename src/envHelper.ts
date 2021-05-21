@@ -3,8 +3,7 @@ import path from "path";
 import StdinNodeJS from "./stdin";
 import dotenv from "dotenv";
 import stripJsonComments from "strip-json-comments";
-
-const defaultConfigFileName = 'envConfig.json';
+import { err, join2, defaultFileReader, resolveEnvConfigPath } from "./utils";
 
 export interface VarInfo {
     /** Variable description, very useful if you are not psychic */
@@ -67,10 +66,11 @@ export interface Options {
     useDefaultAsValue?: boolean;
     emulateInput?: string | ((varName: string) => string);
     dontOverwriteFiles?: boolean;
+    fileReader?: (fileName: string) => string;
 }
 
 export default async function checkEnv(configPath: string, options: Options): Promise<EnvFile[]> {
-    const allEnv = _parseConfig(configPath);
+    const allEnv = _parseConfig(configPath, options);
     const descend = (a: Env, b: Env) => (a._deepth > b._deepth) ? -1 : ((b._deepth > a._deepth) ? 1 : 0);
     allEnv.sort(descend);
 
@@ -125,32 +125,22 @@ function _getModule(allEnv: Env[], moduleAlias: string): Env | undefined {
     }
 }
 
-function _parseConfig(configPath: string, thisModuleAlias?: string, deepth: number = 0): Env[] {
-    if (!fs.existsSync(configPath)) {
-        err(`Invalid path to configuration file ${configPath}`);
+function _parseConfig(configPath: string, options: Options, thisModuleAlias?: string, deepth: number = 0): Env[] {
+    let buf = '';
+
+    try {
+        buf = options.fileReader ? options.fileReader(configPath) : defaultFileReader(configPath);
+    } catch (e) {
+        err(e);
     }
 
-    if (fs.lstatSync(configPath).isSymbolicLink()) {
-        configPath = fs.realpathSync(configPath);
-    }
-    
-    if (fs.lstatSync(configPath).isDirectory()) {
-        configPath = path.join(configPath, defaultConfigFileName);
-
-        if (!fs.existsSync(configPath)) {
-            err(`Environment configuration file not found ${configPath}`);
-        }
-    }
-
-    const dirName = path.dirname(configPath);
-    const buf = fs.readFileSync(configPath, 'utf8');
     let fileData: any;
 
     try {
         fileData = JSON.parse(stripJsonComments(buf));
     } catch (e) {
         console.log(`Error in file ${configPath}`);
-        err(e.message);
+        err(e);
     }
 
     if (!fileData) {
@@ -169,10 +159,11 @@ function _parseConfig(configPath: string, thisModuleAlias?: string, deepth: numb
     // parse module dependencies
     if (deps) {
         _checkConfigProps(deps, _createSchema(Object.keys(deps), ['string']), `"module.dependencies" block of ` + logEnd);
+        const dirName = path.dirname(resolveEnvConfigPath(configPath));
 
         for (const moduleAlias in deps) {
             const modulePath = deps[moduleAlias];
-            const childEnv = _parseConfig(path.join(dirName, modulePath), moduleAlias, deepth + 1);
+            const childEnv = _parseConfig(join2(dirName, modulePath), options, moduleAlias, deepth + 1);
 
             for (const child of childEnv) {
                 const anotherChild = _getModule(childModulesEnv, child.alias);
@@ -408,9 +399,4 @@ function _checkConfigProps(obj: any, schema: Schema, whereIsIt: string) {
             err(`Field "${prop}" (in ${whereIsIt}) should be ${schema[prop].join(', or ')}`);
         }
     }
-}
-
-export function err(msg: string) {
-    console.error("Error: " + msg);
-    process.exit();
 }
