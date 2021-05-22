@@ -49,6 +49,10 @@ export function parseArgs(): { options: Options, mainModule: string, allArgs: an
 }
 
 export function resolveEnvConfigPath(configPath: string): string {
+    if (!fs.existsSync(configPath)) {
+        return configPath;
+    }
+
     if (fs.lstatSync(configPath).isSymbolicLink()) {
         configPath = fs.realpathSync(configPath);
     }
@@ -75,3 +79,6 @@ export function defaultFileReader(configPath: string): string {
     return buf;
 }
 
+export function defaultEnvFileName(moduleName: string): string {
+    return '_' + moduleName + '.env';
+}

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import checkEnv from "./envHelper";
-import { parseArgs, defaultFileReader, resolveEnvConfigPath } from "./utils";
+import { parseArgs, resolveEnvConfigPath, defaultFileReader, defaultEnvFileName } from "./utils";
 
 if (require.main === module) {
     const parsed = parseArgs();
@@ -8,4 +8,4 @@ if (require.main === module) {
 }
 
 export default checkEnv;
-export { defaultFileReader, resolveEnvConfigPath };
+export { resolveEnvConfigPath, defaultFileReader, defaultEnvFileName };

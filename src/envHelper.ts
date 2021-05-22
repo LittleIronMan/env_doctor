@@ -3,7 +3,7 @@ import path from "path";
 import StdinNodeJS from "./stdin";
 import dotenv from "dotenv";
 import stripJsonComments from "strip-json-comments";
-import { err, join2, defaultFileReader, resolveEnvConfigPath } from "./utils";
+import { err, resolveEnvConfigPath, defaultFileReader, defaultEnvFileName } from "./utils";
 
 export interface VarInfo {
     /** Variable description, very useful if you are not psychic */
@@ -66,11 +66,12 @@ export interface Options {
     useDefaultAsValue?: boolean;
     emulateInput?: string | ((varName: string) => string);
     dontOverwriteFiles?: boolean;
-    fileReader?: (fileName: string) => string;
+    customFileReader?: (fileName: string) => string;
+    customEnvFileName?: (moduleName: string) => string;
 }
 
 export default async function checkEnv(configPath: string, options: Options): Promise<EnvFile[]> {
-    const allEnv = _parseConfig(configPath, options);
+    const allEnv = _parseConfig(resolveEnvConfigPath(configPath), options);
     const descend = (a: Env, b: Env) => (a._deepth > b._deepth) ? -1 : ((b._deepth > a._deepth) ? 1 : 0);
     allEnv.sort(descend);
 
@@ -129,7 +130,7 @@ function _parseConfig(configPath: string, options: Options, thisModuleAlias?: st
     let buf = '';
 
     try {
-        buf = options.fileReader ? options.fileReader(configPath) : defaultFileReader(configPath);
+        buf = options.customFileReader ? options.customFileReader(configPath) : defaultFileReader(configPath);
     } catch (e) {
         err(e);
     }
@@ -159,11 +160,11 @@ function _parseConfig(configPath: string, options: Options, thisModuleAlias?: st
     // parse module dependencies
     if (deps) {
         _checkConfigProps(deps, _createSchema(Object.keys(deps), ['string']), `"module.dependencies" block of ` + logEnd);
-        const dirName = path.dirname(resolveEnvConfigPath(configPath));
+        const dirName = path.dirname(configPath);
 
         for (const moduleAlias in deps) {
-            const modulePath = deps[moduleAlias];
-            const childEnv = _parseConfig(join2(dirName, modulePath), options, moduleAlias, deepth + 1);
+            const modulePath = resolveEnvConfigPath(path.join(dirName, deps[moduleAlias]));
+            const childEnv = _parseConfig(modulePath, options, moduleAlias, deepth + 1);
 
             for (const child of childEnv) {
                 const anotherChild = _getModule(childModulesEnv, child.alias);
@@ -188,7 +189,7 @@ function _parseConfig(configPath: string, options: Options, thisModuleAlias?: st
         data: {},
         _deepth: deepth,
         _envFile: {
-            filePath: '_' + module.name + ".env",
+            filePath: options.customEnvFileName ? options.customEnvFileName(module.name) : defaultEnvFileName(module.name),
             data: {},
         }
     };
