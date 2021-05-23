@@ -326,6 +326,19 @@ async function _enterMissingVariables(env: Env, options: Options) {
 
     for (const varName of variablesList) {
         const varInfo = env.data[varName];
+
+        if (!options.emulateInput) {
+            console.log(`${header('Variable name')}\t${highlight(varName)}`);
+
+            if (varInfo.default) {
+                console.log(`Default value\t${varInfo.default}`);
+            }
+
+            if (varInfo.desc) {
+                console.log(`Description\t${varInfo.desc}`);
+            }
+        }
+
         varInfo._enteredValue = await _enterVariableValue(varName, varInfo, stdin, options);
     }
 
@@ -341,16 +354,6 @@ async function _enterVariableValue(varName: string, varInfo: VarInfo, stdin: Std
             } else if (typeof options.emulateInput === 'string') {
                 return resolve(options.emulateInput);
             }
-        }
-
-        console.log(`${header('Variable name')}\t${highlight(varName)}`);
-
-        if (varInfo.default) {
-            console.log(`Default value\t${varInfo.default}`);
-        }
-
-        if (varInfo.desc) {
-            console.log(`Description\t${varInfo.desc}`);
         }
 
         stdin.muted = !!varInfo.secret;
