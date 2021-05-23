@@ -88,3 +88,13 @@ export function defaultFileReader(configPath: string): string {
 export function defaultEnvFileName(moduleName: string): string {
     return '_' + moduleName + '.env';
 }
+
+// https://stackoverflow.com/a/41407246
+const UNDERLINE = '\x1b[4m';
+const YELLOW = '\x1b[33m';
+const BLUE = '\x1b[34m';
+const RESET = '\x1b[0m';
+export const OVERWRITE_LINE = '\x1b[0g';
+export const header = (s: string) => UNDERLINE + s + RESET;
+export const highlight = (s: string) => YELLOW + s + RESET;
+export const secret = (s: string) => BLUE + s + RESET;

@@ -3,7 +3,7 @@ import path from "path";
 import StdinNodeJS from "./stdin";
 import dotenv from "dotenv";
 import stripJsonComments from "strip-json-comments";
-import { err, resolveEnvConfigPath, defaultFileReader, defaultEnvFileName } from "./utils";
+import { err, resolveEnvConfigPath, defaultFileReader, defaultEnvFileName, header, highlight, secret, OVERWRITE_LINE } from "./utils";
 
 export interface VarInfo {
     /** Variable description, very useful if you are not psychic */
@@ -343,16 +343,6 @@ async function _enterVariableValue(varName: string, varInfo: VarInfo, stdin: Std
             }
         }
 
-        // https://stackoverflow.com/a/41407246
-        const underline = '\x1b[4m';
-        const yellow = '\x1b[33m';
-        const blue = '\x1b[34m';
-        const reset = '\x1b[0m';
-        const overwriteLine = '\x1b[0G';
-        const header = (s: string) => underline + s + reset;
-        const highlight = (s: string) => yellow + s + reset;
-        const secret = (s: string) => blue + s + reset;
-
         console.log(`${header('Variable name')}\t${highlight(varName)}`);
 
         if (varInfo.default) {
@@ -381,7 +371,19 @@ async function _enterVariableValue(varName: string, varInfo: VarInfo, stdin: Std
                 process.stdout.clearLine(1) // from cursor to end
             }
 
-            console.log(`${overwriteLine}${header('Finish value')}\t${varInfo.secret ? secret('<secret>'): highlight(answer)}`);
+            let answerLog: string;
+
+            if (varInfo.secret) {
+                answerLog = secret('<secret>');
+            } else {
+                if (answer === '') {
+                    answerLog = secret('<blank>');
+                } else {
+                    answerLog = highlight(answer);
+                }
+            }
+
+            console.log(`${OVERWRITE_LINE}${header('Finish value')}\t${answerLog}`);
             console.log('--------------------');
             resolve(answer);
         });
