@@ -294,7 +294,8 @@ function _getFinishValue(varInfo: VarInfo, options: Options): string | undefined
         return varInfo.default;
     }
 
-    if (varInfo._enteredValue) {
+    // _enteredValue can be empty (=== '')
+    if (typeof varInfo._enteredValue === 'string') {
         return varInfo._enteredValue;
     }
 
