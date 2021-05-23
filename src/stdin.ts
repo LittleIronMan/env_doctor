@@ -3,7 +3,7 @@ import { Writable } from "stream";
 
 export default class StdinNodeJS {
     rl: readline.Interface;
-    stdinHandler?: (input: string) => void;
+    // stdinHandler?: (input: string) => void;
     mutableStdout: Writable;
     muted = false;
 
@@ -22,14 +22,16 @@ export default class StdinNodeJS {
         this.rl = readline.createInterface({
             input: process.stdin,
             output: this.mutableStdout,
-            terminal: true
+            // When 'terminal': false
+            // the user's password will be invisible in the console while typing
+            terminal: true,
         });
 
-        this.rl.on('line', (line) => {
+        // this.rl.on('line', (line) => {
 
-            if (this.stdinHandler) {
-                this.stdinHandler(line);
-            }
-        });
+        //     if (this.stdinHandler) {
+        //         this.stdinHandler(line);
+        //     }
+        // });
     }
 }

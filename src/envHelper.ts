@@ -343,29 +343,48 @@ async function _enterVariableValue(varName: string, varInfo: VarInfo, stdin: Std
             }
         }
 
-        console.log('(Variable name): ' + varName);
+        // https://stackoverflow.com/a/41407246
+        const underline = '\x1b[4m';
+        const yellow = '\x1b[33m';
+        const blue = '\x1b[34m';
+        const reset = '\x1b[0m';
+        const overwriteLine = '\x1b[0G';
+        const header = (s: string) => underline + s + reset;
+        const highlight = (s: string) => yellow + s + reset;
+        const secret = (s: string) => blue + s + reset;
+
+        console.log(`${header('Variable name')}\t${highlight(varName)}`);
 
         if (varInfo.default) {
-            console.log(`(Default value) == "${varInfo.default}"`);
+            console.log(`Default value\t${varInfo.default}`);
         }
 
         if (varInfo.desc) {
-            console.log('(Description): ' + varInfo.desc);
+            console.log(`Description\t${varInfo.desc}`);
         }
 
         stdin.muted = !!varInfo.secret;
 
-        console.log('(Enter value)> ');
+        const question = `${header('Enter value')}> `;
 
-        stdin.stdinHandler = (line) => {
-            if (line === '' && varInfo.default) {
-                line = varInfo.default;
+        if (stdin.muted) {
+            process.stdout.write(question);
+        }
+
+        stdin.rl.question(question, (answer) => {
+            if (answer === '' && varInfo.default) {
+                answer = varInfo.default;
             }
 
-            console.log(`${varName}=${varInfo.secret ? '<secret>': line}`);
-            console.log('');
-            resolve(line);
-        };
+            if (!stdin.muted) {
+                process.stdout.moveCursor(0, -1) // up one line
+                process.stdout.clearLine(1) // from cursor to end
+            }
+
+            console.log(`${overwriteLine}${header('Finish value')}\t${varInfo.secret ? secret('<secret>'): highlight(answer)}`);
+            console.log('--------------------');
+            resolve(answer);
+        });
     });
 }
 
