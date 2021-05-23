@@ -61,7 +61,13 @@ export function resolveEnvConfigPath(configPath: string): string {
         configPath = path.join(configPath, defaultConfigFileName);
     }
 
-    return configPath.replace(/\\/g, '/');
+    configPath = configPath.replace(/\\/g, '/');
+
+    if (!path.isAbsolute(configPath) && configPath !== '.' && configPath !== '' && !configPath.startsWith('./')) {
+        configPath = './' + configPath;
+    }
+
+    return configPath;
 }
 
 export function defaultFileReader(configPath: string): string {
