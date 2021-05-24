@@ -3,7 +3,7 @@ import path from "path";
 import StdinNodeJS from "./stdin";
 import dotenv from "dotenv";
 import stripJsonComments from "strip-json-comments";
-import { err, resolveEnvConfigPath, defaultFileReader, defaultEnvFileName, header, highlight, secret, OVERWRITE_LINE } from "./utils";
+import { err, resolveEnvConfigPath, defaultFileReader, defaultEnvFileName, header, highlight, secret, OVERWRITE_LINE, join2 } from "./utils";
 
 export interface VarInfo {
     /** Variable description, very useful if you are not psychic */
@@ -160,7 +160,17 @@ function _parseConfig(configPath: string, options: Options, thisModuleAlias?: st
     // parse module dependencies
     if (deps) {
         _checkConfigProps(deps, _createSchema(Object.keys(deps), ['string']), `"module.dependencies" block of ` + logEnd);
-        const dirName = path.dirname(configPath);
+
+        let depsRoot = '.';
+
+        if (deps.root) {
+            if (typeof deps.root === 'string') {
+                depsRoot = deps.root;
+            }
+            delete deps.root;
+        }
+
+        const dirName = join2(path.dirname(configPath), depsRoot);
 
         for (const moduleAlias in deps) {
             const modulePath = resolveEnvConfigPath(path.join(dirName, deps[moduleAlias]));

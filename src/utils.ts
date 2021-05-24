@@ -53,11 +53,16 @@ export function resolveEnvConfigPath(configPath: string): string {
         return configPath;
     }
 
+    let isDirectory = false;
+
     if (fs.lstatSync(configPath).isSymbolicLink()) {
-        configPath = fs.realpathSync(configPath);
+        const realpath = fs.realpathSync(configPath);
+        isDirectory = fs.lstatSync(realpath).isDirectory();
+    } else {
+        isDirectory = fs.lstatSync(configPath).isDirectory();
     }
     
-    if (fs.lstatSync(configPath).isDirectory()) {
+    if (isDirectory) {
         configPath = path.join(configPath, defaultConfigFileName);
     }
 
@@ -79,6 +84,10 @@ export function defaultFileReader(configPath: string): string {
 
     if (!fs.existsSync(configPath)) {
         throw `File does not exist ${configPath}`;
+    }
+
+    if (fs.lstatSync(configPath).isSymbolicLink()) {
+        configPath = fs.realpathSync(configPath);
     }
 
     const buf = fs.readFileSync(configPath, 'utf8');
