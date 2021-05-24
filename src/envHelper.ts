@@ -162,7 +162,7 @@ function parseEnvConfig(_configPath: string | EnvConfigPathI, options: Options, 
     let buf = '';
 
     try {
-        buf = options.customFileReader ? options.customFileReader(configPath.path, configPath.id) : defaultFileReader(configPath.path, configPath.id);
+        buf = options.customFileReader ? options.customFileReader(configPath.path, configPath.id) : defaultFileReader(configPath.path);
     } catch (e) {
         err(e);
     }
@@ -192,16 +192,14 @@ function parseEnvConfig(_configPath: string | EnvConfigPathI, options: Options, 
 
     // parse module dependencies (i.e children)
     if (deps) {
-        _checkConfigProps(deps, _createSchema(Object.keys(deps), ['string']), `"module.dependencies" block of ` + logEnd);
-
         let depsRoot = '.';
 
-        if (deps.root) {
-            if (typeof deps.root === 'string') {
-                depsRoot = deps.root;
-            }
-            delete deps.root;
+        if (typeof deps.root === 'string') {
+            depsRoot = deps.root;
         }
+        delete deps.root;
+
+        _checkConfigProps(deps, _createSchema(Object.keys(deps), ['string', 'object']), `"module.dependencies" block of ` + logEnd);
 
         const dirName = join2(path.dirname(configPath.path), depsRoot);
 
