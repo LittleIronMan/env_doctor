@@ -75,7 +75,7 @@ export function resolveEnvConfigPath(configPath: string): string {
     return configPath;
 }
 
-export function defaultFileReader(configPath: string): string {
+export function defaultFileReader(configPath: string, moduleId?: string): string {
     if (!fs.existsSync(configPath)) {
         throw `File does not exist ${configPath}`;
     }

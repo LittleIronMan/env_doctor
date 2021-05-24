@@ -45,17 +45,48 @@ interface ModuleBlock {
 
 export type EnvConfig = { [varName: string]: VarInfo };
 
-export interface EnvFile {
+export interface DotEnvFile {
     filePath: string;
     data: StringMap;
 }
 
+interface EnvConfigPathI {
+    path?: string;
+    /** Custom file id, can be used in customFileReader */
+    id?: string;
+}
+
+class EnvConfigPath implements EnvConfigPathI {
+    path: string;
+    id?: string;
+
+    constructor(p: string | EnvConfigPathI) {
+        if (typeof p === 'object') {
+            this.path = p.path || '';
+            this.id = p.id;
+        } else if (typeof p === 'string') {
+            this.path = p;
+        } else {
+            this.path = '';
+        }
+    }
+
+    toString(): string {
+        return this.path + (this.id ? ('[id:' + this.id + ']') : '');
+    }
+
+    isEmpty(): boolean {
+        return this.path === '' && !this.id;
+    }
+}
+
+
 export interface Env {
     name: string;
-    configFilePath: string;
+    configFilePath: EnvConfigPath;
     data: EnvConfig;
     _deepth: number;
-    _envFile: EnvFile;
+    _dotEnvFile: DotEnvFile;
 }
 
 export type EnvMap = { [moduleAlias: string]: Env };
@@ -65,12 +96,13 @@ export interface Options {
     useDefaultAsValue?: boolean;
     emulateInput?: string | ((varName: string) => string);
     dontOverwriteFiles?: boolean;
-    customFileReader?: (fileName: string) => string;
+    moduleId?: string;
+    customFileReader?: (fileName: string, moduleId?: string) => string;
     customEnvFileName?: (moduleName: string) => string;
 }
 
-export default async function checkEnv(configPath: string, options: Options): Promise<EnvFile[]> {
-    const allEnv = _parseConfig(resolveEnvConfigPath(configPath), options);
+export default async function checkEnv(configPath: string, options: Options): Promise<DotEnvFile[]> {
+    const allEnv = parseEnvConfig({ path: resolveEnvConfigPath(configPath), id: options.moduleId }, options);
     const descend = (a: Env, b: Env) => (a._deepth > b._deepth) ? -1 : ((b._deepth > a._deepth) ? 1 : 0);
     allEnv.sort(descend);
 
@@ -92,7 +124,7 @@ export default async function checkEnv(configPath: string, options: Options): Pr
                     continue;
                 }
 
-                env._envFile.data[varName] = finishValue;
+                env._dotEnvFile.data[varName] = finishValue;
             } else {
                 console.warn(`The script could not get the value of the variable ${varName} for an unknown reason`);
             }
@@ -100,20 +132,20 @@ export default async function checkEnv(configPath: string, options: Options): Pr
 
         if (!options.dontOverwriteFiles) {
             //const serialized = JSON.stringify(fileData, null, '\t');
-            const serialized = Object.keys(env._envFile.data).map((varName) => {
-                return varName + '=' + env._envFile.data[varName];
+            const serialized = Object.keys(env._dotEnvFile.data).map((varName) => {
+                return varName + '=' + env._dotEnvFile.data[varName];
             }).join('\n');
 
-            fs.writeFileSync(env._envFile.filePath, serialized, 'utf8');
+            fs.writeFileSync(env._dotEnvFile.filePath, serialized, 'utf8');
         }
     }
 
     console.log('All environment variables are ready');
-    return allEnv.map((env) => env._envFile);
+    return allEnv.map((env) => env._dotEnvFile);
 }
 
 
-function _moduleNameConflict(moduleAlias: string, configPath1: string, configPath2: string) {
+function _moduleNameConflict(moduleAlias: string, configPath1: EnvConfigPath, configPath2: EnvConfigPath) {
     err(`Module name conflict, the module name "${moduleAlias}" was found simultaneously in the config "${configPath1}" and "${configPath2}"`)
 }
 
@@ -125,11 +157,12 @@ function _getModule(allEnv: Env[], moduleName: string): Env | undefined {
     }
 }
 
-function _parseConfig(configPath: string, options: Options, deepth: number = 0): Env[] {
+function parseEnvConfig(_configPath: string | EnvConfigPathI, options: Options, deepth: number = 0): Env[] {
+    const configPath = new EnvConfigPath(_configPath);
     let buf = '';
 
     try {
-        buf = options.customFileReader ? options.customFileReader(configPath) : defaultFileReader(configPath);
+        buf = options.customFileReader ? options.customFileReader(configPath.path, configPath.id) : defaultFileReader(configPath.path, configPath.id);
     } catch (e) {
         err(e);
     }
@@ -170,11 +203,18 @@ function _parseConfig(configPath: string, options: Options, deepth: number = 0):
             delete deps.root;
         }
 
-        const dirName = join2(path.dirname(configPath), depsRoot);
+        const dirName = join2(path.dirname(configPath.path), depsRoot);
 
         for (const childModuleAlias in deps) {
-            const childModulePath = resolveEnvConfigPath(path.join(dirName, deps[childModuleAlias]));
-            const childEnv = _parseConfig(childModulePath, options, deepth + 1);
+            const childConfigPath = new EnvConfigPath(deps[childModuleAlias]);
+
+            if (childConfigPath.isEmpty()) {
+                err(`Invalid dependency ${childModuleAlias} in config ${configPath}`);
+            }
+
+            childConfigPath.path = resolveEnvConfigPath(path.join(dirName, childConfigPath.path));
+
+            const childEnv = parseEnvConfig(childConfigPath, options, deepth + 1);
             aliasMap[childModuleAlias] = childEnv[0].name;
 
             for (const child of childEnv) {
@@ -198,7 +238,7 @@ function _parseConfig(configPath: string, options: Options, deepth: number = 0):
         configFilePath: configPath,
         data: {},
         _deepth: deepth,
-        _envFile: {
+        _dotEnvFile: {
             filePath: options.customEnvFileName ? options.customEnvFileName(module.name) : defaultEnvFileName(module.name),
             data: {},
         }
@@ -270,17 +310,17 @@ function _parseConfig(configPath: string, options: Options, deepth: number = 0):
 function _checkExistingEnvFile(env: Env, options: Options) {
     const config = env.data;
 
-    if (!options.clearAll && fs.existsSync(env._envFile.filePath)) {
+    if (!options.clearAll && fs.existsSync(env._dotEnvFile.filePath)) {
 
-        const buf = fs.readFileSync(env._envFile.filePath, 'utf8');
+        const buf = fs.readFileSync(env._dotEnvFile.filePath, 'utf8');
         const _envFileData = dotenv.parse(buf) as StringMap;
         //const _fileData = JSON.parse(buf);
 
         if (!_envFileData) {
-            err(`Invalid .env file "${env._envFile.filePath}"`);
+            err(`Invalid .env file "${env._dotEnvFile.filePath}"`);
         }
 
-        env._envFile.data = _envFileData;
+        env._dotEnvFile.data = _envFileData;
 
         for (const varName in config) {
             const varInfo = config[varName];
