@@ -52,7 +52,6 @@ export interface EnvFile {
 
 export interface Env {
     name: string;
-    alias: string;
     configFilePath: string;
     data: EnvConfig;
     _deepth: number;
@@ -118,15 +117,15 @@ function _moduleNameConflict(moduleAlias: string, configPath1: string, configPat
     err(`Module name conflict, the module name "${moduleAlias}" was found simultaneously in the config "${configPath1}" and "${configPath2}"`)
 }
 
-function _getModule(allEnv: Env[], moduleAlias: string): Env | undefined {
+function _getModule(allEnv: Env[], moduleName: string): Env | undefined {
     for (let i = 0; i < allEnv.length; i++) {
-        if (allEnv[i].alias == moduleAlias) {
+        if (allEnv[i].name == moduleName) {
             return allEnv[i];
         }
     }
 }
 
-function _parseConfig(configPath: string, options: Options, thisModuleAlias?: string, deepth: number = 0): Env[] {
+function _parseConfig(configPath: string, options: Options, deepth: number = 0): Env[] {
     let buf = '';
 
     try {
@@ -156,8 +155,9 @@ function _parseConfig(configPath: string, options: Options, thisModuleAlias?: st
 
     const deps = module.dependencies;
     let childModulesEnv: Env[] = [];
+    const aliasMap: { [alias: string]: string } = {};
 
-    // parse module dependencies
+    // parse module dependencies (i.e children)
     if (deps) {
         _checkConfigProps(deps, _createSchema(Object.keys(deps), ['string']), `"module.dependencies" block of ` + logEnd);
 
@@ -172,15 +172,16 @@ function _parseConfig(configPath: string, options: Options, thisModuleAlias?: st
 
         const dirName = join2(path.dirname(configPath), depsRoot);
 
-        for (const moduleAlias in deps) {
-            const modulePath = resolveEnvConfigPath(path.join(dirName, deps[moduleAlias]));
-            const childEnv = _parseConfig(modulePath, options, moduleAlias, deepth + 1);
+        for (const childModuleAlias in deps) {
+            const childModulePath = resolveEnvConfigPath(path.join(dirName, deps[childModuleAlias]));
+            const childEnv = _parseConfig(childModulePath, options, deepth + 1);
+            aliasMap[childModuleAlias] = childEnv[0].name;
 
             for (const child of childEnv) {
-                const anotherChild = _getModule(childModulesEnv, child.alias);
+                const anotherChild = _getModule(childModulesEnv, child.name);
 
                 if (anotherChild) {
-                    _moduleNameConflict(child.alias, anotherChild.configFilePath, child.configFilePath);
+                    _moduleNameConflict(child.name, anotherChild.configFilePath, child.configFilePath);
                 }
 
                 childModulesEnv.push(child);
@@ -188,13 +189,12 @@ function _parseConfig(configPath: string, options: Options, thisModuleAlias?: st
         }
     }
 
-    // parse config of module
+    // parse config of this module (i.e parent)
     const config = fileData.config as EnvConfig;
     _checkConfigProps(config, _createSchema(Object.keys(config), ['object']), `"config" block of ` + logEnd);
 
     const env: Env = {
         name: module.name,
-        alias: thisModuleAlias || module.name,
         configFilePath: configPath,
         data: {},
         _deepth: deepth,
@@ -223,12 +223,14 @@ function _parseConfig(configPath: string, options: Options, thisModuleAlias?: st
             const refVarName = words[1];
             let refBroken = false;
 
-            if (typeof refModuleAlias !== 'string' || typeof refVarName !== 'string') {
+            if (typeof refModuleAlias !== 'string' || typeof refVarName !== 'string'
+                || typeof aliasMap[refModuleAlias] !== 'string'
+            ) {
                 refBroken = true;
             }
 
             if (!refBroken) {
-                const child = _getModule(childModulesEnv, refModuleAlias)
+                const child = _getModule(childModulesEnv, aliasMap[refModuleAlias]);
 
                 if (child && child.data[refVarName]) {
                     env.data[varName] = child.data[refVarName];
@@ -238,7 +240,7 @@ function _parseConfig(configPath: string, options: Options, thisModuleAlias?: st
             }
 
             if (refBroken) {
-                err(`Broken reference "${varInfo.refTo}" in `) + logEnd;
+                err(`Broken reference "${varInfo.refTo}" in ` + logEnd);
             }
 
             for (const prop in varInfo) {
@@ -253,13 +255,14 @@ function _parseConfig(configPath: string, options: Options, thisModuleAlias?: st
         }
     }
 
-    const twin = _getModule(childModulesEnv, env.alias);
+    const twin = _getModule(childModulesEnv, env.name);
 
     if (twin) {
-        _moduleNameConflict(env.alias, twin.configFilePath, configPath);
+        _moduleNameConflict(env.name, twin.configFilePath, configPath);
     }
 
-    childModulesEnv.push(env);
+    // parent module always first
+    childModulesEnv.unshift(env);
 
     return childModulesEnv;
 }
