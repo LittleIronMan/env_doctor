@@ -1,6 +1,6 @@
 {
   "name": "doctor-env",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Vital utility for describing and checking environment variables",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
