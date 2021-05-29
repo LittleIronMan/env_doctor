@@ -32,6 +32,7 @@ export interface VarInfo {
 
     _valueFromEnvFile?: string;
     _enteredValue?: string;
+    _userSelectedValue?: string;
 };
 const stringFields = ["default", "value", "refTo"];
 const booleanFields = ["secret", "optional", "clearBefore"];
@@ -120,7 +121,7 @@ export default async function checkEnv(configPath: string, options: Options): Pr
             let finishValue = _getFinishValue(varInfo, options);
 
             if (typeof finishValue === 'string') {
-                if (typeof varInfo._valueFromEnvFile === 'string' && finishValue !== varInfo._valueFromEnvFile) {
+                if (typeof varInfo._userSelectedValue === 'undefined' && typeof varInfo._valueFromEnvFile === 'string' && finishValue !== varInfo._valueFromEnvFile) {
                     // If the value of the variable has changed, the user decides which value to use
                     let old: string;
                     let now: string;
@@ -132,7 +133,7 @@ export default async function checkEnv(configPath: string, options: Options): Pr
                         now = highlight(finishValue);
                     }
 
-                    console.log(`The value of variable "${highlight(varName)}" has changed, from "${old}" to "${now}"`);
+                    console.log(`The value of variable "${highlight(varName)}"(module: ${env.name}) has changed, from "${old}" to "${now}"`);
                     const ans = (await input(`Overwrite variable "${varName}" (y/N)?`)).trim().toLowerCase();
 
                     if (ans === 'y') {
@@ -140,6 +141,8 @@ export default async function checkEnv(configPath: string, options: Options): Pr
                     } else {
                         finishValue = varInfo._valueFromEnvFile;
                     }
+
+                    varInfo._userSelectedValue = finishValue;
                 }
 
                 if (finishValue === '' && varInfo.optional) {
@@ -355,6 +358,10 @@ function _checkExistingEnvFile(env: Env, options: Options) {
 }
 
 function _getFinishValue(varInfo: VarInfo, options: Options): string | undefined {
+    if (typeof varInfo._userSelectedValue === 'string') {
+        return varInfo._userSelectedValue;
+    }
+
     if (typeof varInfo.value === 'string') {
         return varInfo.value;
     }
