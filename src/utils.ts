@@ -68,7 +68,7 @@ export function resolveEnvConfigPath(configPath: string): string {
 
     configPath = configPath.replace(/\\/g, '/');
 
-    if (!path.isAbsolute(configPath) && configPath !== '.' && configPath !== '' && !configPath.startsWith('./')) {
+    if (configPath !== '' && !path.isAbsolute(configPath) && !configPath.startsWith('./') && !configPath.startsWith('../') && configPath !== '.') {
         configPath = './' + configPath;
     }
 
