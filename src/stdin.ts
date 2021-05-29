@@ -1,7 +1,7 @@
 import readline from "readline";
 import { Writable } from "stream";
 
-export default class StdinNodeJS {
+export default class SequreStdin {
     rl: readline.Interface;
     // stdinHandler?: (input: string) => void;
     mutableStdout: Writable;
@@ -34,4 +34,18 @@ export default class StdinNodeJS {
         //     }
         // });
     }
+}
+
+export async function input(question: string): Promise<string> {
+    return new Promise(function (resolve, reject) {
+        const rl = readline.createInterface({
+            input: process.stdin,
+            output: process.stdout
+        });
+
+        rl.question(question, (answer) => {
+            rl.close();
+            resolve(answer);
+        });
+    });
 }

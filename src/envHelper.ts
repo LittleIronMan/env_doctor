@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import StdinNodeJS from "./stdin";
+import SequreStdin, { input } from "./stdin";
 import dotenv from "dotenv";
 import stripJsonComments from "strip-json-comments";
 import { err, resolveEnvConfigPath, defaultFileReader, defaultEnvFileName, header, highlight, secret, OVERWRITE_LINE, join2 } from "./utils";
@@ -117,16 +117,38 @@ export default async function checkEnv(configPath: string, options: Options): Pr
     for (const env of allEnv) {
         for (const varName in env.data) {
             const varInfo = env.data[varName];
-            const finishValue = _getFinishValue(varInfo, options);
+            let finishValue = _getFinishValue(varInfo, options);
 
             if (typeof finishValue === 'string') {
+                if (typeof varInfo._valueFromEnvFile === 'string' && finishValue !== varInfo._valueFromEnvFile) {
+                    // If the value of the variable has changed, the user decides which value to use
+                    let old: string;
+                    let now: string;
+
+                    if (varInfo.secret) {
+                        old = now = secret('<secret>');
+                    } else {
+                        old = highlight(varInfo._valueFromEnvFile);
+                        now = highlight(finishValue);
+                    }
+
+                    console.log(`The value of variable "${highlight(varName)}" has changed, from "${old}" to "${now}"`);
+                    const ans = (await input(`Overwrite variable "${varName}" (y/N)?`)).trim().toLowerCase();
+
+                    if (ans === 'y') {
+                        // finishValue will be used
+                    } else {
+                        finishValue = varInfo._valueFromEnvFile;
+                    }
+                }
+
                 if (finishValue === '' && varInfo.optional) {
                     continue;
                 }
 
                 env._dotEnvFile.data[varName] = finishValue;
             } else {
-                console.warn(`The script could not get the value of the variable ${varName} for an unknown reason`);
+                console.warn(`The script could not calculate value of the variable "${varName}" for an unknown reason`);
             }
         }
 
@@ -333,16 +355,16 @@ function _checkExistingEnvFile(env: Env, options: Options) {
 }
 
 function _getFinishValue(varInfo: VarInfo, options: Options): string | undefined {
-    if (typeof varInfo._valueFromEnvFile === 'string' && !varInfo.clearBefore && !options.clearAll) {
-        return varInfo._valueFromEnvFile;
-    }
-
     if (typeof varInfo.value === 'string') {
         return varInfo.value;
     }
 
     if (options.useDefaultAsValue && typeof varInfo.default === 'string') {
         return varInfo.default;
+    }
+
+    if (typeof varInfo._valueFromEnvFile === 'string' && !varInfo.clearBefore && !options.clearAll) {
+        return varInfo._valueFromEnvFile;
     }
 
     // _enteredValue can be empty (=== '')
@@ -374,7 +396,7 @@ async function _enterMissingVariables(env: Env, options: Options) {
         return;
     }
 
-    const stdin = new StdinNodeJS();
+    const stdin = new SequreStdin();
 
     for (const varName of variablesList) {
         const varInfo = env.data[varName];
@@ -397,7 +419,7 @@ async function _enterMissingVariables(env: Env, options: Options) {
     stdin.rl.close();
 }
 
-async function _enterVariableValue(varName: string, varInfo: VarInfo, stdin: StdinNodeJS, options: Options): Promise<string> {
+async function _enterVariableValue(varName: string, varInfo: VarInfo, stdin: SequreStdin, options: Options): Promise<string> {
     return new Promise(function (resolve, reject) {
 
         if (options.emulateInput) {
