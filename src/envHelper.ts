@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import SequreStdin, { input } from "./stdin";
+import SecureStdin, { input } from "./stdin";
 import dotenv from "dotenv";
 import stripJsonComments from "strip-json-comments";
 import { err, resolveEnvConfigPath, defaultFileReader, defaultEnvFileName, header, highlight, secret, OVERWRITE_LINE, join2 } from "./utils";
@@ -403,7 +403,7 @@ async function _enterMissingVariables(env: Env, options: Options) {
         return;
     }
 
-    const stdin = new SequreStdin();
+    const stdin = new SecureStdin();
 
     for (const varName of variablesList) {
         const varInfo = env.data[varName];
@@ -426,7 +426,7 @@ async function _enterMissingVariables(env: Env, options: Options) {
     stdin.rl.close();
 }
 
-async function _enterVariableValue(varName: string, varInfo: VarInfo, stdin: SequreStdin, options: Options): Promise<string> {
+async function _enterVariableValue(varName: string, varInfo: VarInfo, stdin: SecureStdin, options: Options): Promise<string> {
     return new Promise(function (resolve, reject) {
 
         if (options.emulateInput) {

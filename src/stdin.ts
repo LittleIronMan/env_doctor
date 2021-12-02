@@ -1,7 +1,7 @@
 import readline from "readline";
 import { Writable } from "stream";
 
-export default class SequreStdin {
+export default class SecureStdin {
     rl: readline.Interface;
     // stdinHandler?: (input: string) => void;
     mutableStdout: Writable;

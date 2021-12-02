@@ -82,6 +82,7 @@ export function defaultFileReader(configPath: string): string {
 
     configPath = resolveEnvConfigPath(configPath);
 
+    // TODO избавиться от дублирования
     if (!fs.existsSync(configPath)) {
         throw `File does not exist ${configPath}`;
     }
